@@ -22,6 +22,7 @@
 package uuid
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
 	"net"
@@ -193,6 +194,20 @@ func (s *genTestSuite) TestNewV4FaultyRand(c *C) {
 	u1, err := g.NewV4()
 	c.Assert(err, NotNil)
 	c.Assert(u1, Equals, Nil)
+}
+
+func (s *genTestSuite) TestNewV4IncompleteRandomReader(c *C) {
+	r := bytes.NewReader([]byte{42})
+
+	g := &rfc4122Generator{
+		epochFunc: time.Now,
+		hwAddrFunc: func() (net.HardwareAddr, error) {
+			return []byte{}, fmt.Errorf("uuid: no hw address found")
+		},
+		rand: r,
+	}
+	_, err := g.NewV4()
+	c.Assert(err, NotNil)
 }
 
 func (s *genTestSuite) BenchmarkNewV4(c *C) {
