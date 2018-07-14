@@ -32,8 +32,8 @@ func (u UUID) Value() (driver.Value, error) {
 }
 
 // Scan implements the sql.Scanner interface.
-// A 16-byte slice is handled by UnmarshalBinary, while
-// a longer byte slice or a string is handled by UnmarshalText.
+// A 16-byte slice will be handled by UnmarshalBinary, while
+// a longer byte slice or a string will be handled by UnmarshalText.
 func (u *UUID) Scan(src interface{}) error {
 	switch src := src.(type) {
 	case []byte:
@@ -50,7 +50,7 @@ func (u *UUID) Scan(src interface{}) error {
 }
 
 // NullUUID can be used with the standard sql package to represent a
-// UUID value that can be NULL in the database
+// UUID value that can be NULL in the database.
 type NullUUID struct {
 	UUID  UUID
 	Valid bool

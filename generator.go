@@ -50,32 +50,32 @@ var (
 	posixGID = uint32(os.Getgid())
 )
 
-// NewV1 returns UUID based on current timestamp and MAC address.
+// NewV1 returns a UUID based on the current timestamp and MAC address.
 func NewV1() (UUID, error) {
 	return DefaultGenerator.NewV1()
 }
 
-// NewV2 returns DCE Security UUID based on POSIX UID/GID.
+// NewV2 returns a DCE Security UUID based on the POSIX UID/GID.
 func NewV2(domain byte) (UUID, error) {
 	return DefaultGenerator.NewV2(domain)
 }
 
-// NewV3 returns UUID based on MD5 hash of namespace UUID and name.
+// NewV3 returns a UUID based on the MD5 hash of the namespace UUID and name.
 func NewV3(ns UUID, name string) UUID {
 	return DefaultGenerator.NewV3(ns, name)
 }
 
-// NewV4 returns random generated UUID.
+// NewV4 returns a randomly generated UUID.
 func NewV4() (UUID, error) {
 	return DefaultGenerator.NewV4()
 }
 
-// NewV5 returns UUID based on SHA-1 hash of namespace UUID and name.
+// NewV5 returns a UUID based on SHA-1 hash of the namespace UUID and name.
 func NewV5(ns UUID, name string) UUID {
 	return DefaultGenerator.NewV5(ns, name)
 }
 
-// Generator provides interface for generating UUIDs.
+// Generator provides an interface for generating UUIDs.
 type Generator interface {
 	NewV1() (UUID, error)
 	NewV2(domain byte) (UUID, error)
@@ -107,7 +107,7 @@ func newRFC4122Generator() Generator {
 	}
 }
 
-// NewV1 returns UUID based on current timestamp and MAC address.
+// NewV1 returns a UUID based on the current timestamp and MAC address.
 func (g *rfc4122Generator) NewV1() (UUID, error) {
 	u := UUID{}
 
@@ -132,7 +132,7 @@ func (g *rfc4122Generator) NewV1() (UUID, error) {
 	return u, nil
 }
 
-// NewV2 returns DCE Security UUID based on POSIX UID/GID.
+// NewV2 returns a DCE Security UUID based on the POSIX UID/GID.
 func (g *rfc4122Generator) NewV2(domain byte) (UUID, error) {
 	u, err := g.NewV1()
 	if err != nil {
@@ -154,7 +154,7 @@ func (g *rfc4122Generator) NewV2(domain byte) (UUID, error) {
 	return u, nil
 }
 
-// NewV3 returns UUID based on MD5 hash of namespace UUID and name.
+// NewV3 returns a UUID based on the MD5 hash of the namespace UUID and name.
 func (g *rfc4122Generator) NewV3(ns UUID, name string) UUID {
 	u := newFromHash(md5.New(), ns, name)
 	u.SetVersion(V3)
@@ -163,7 +163,7 @@ func (g *rfc4122Generator) NewV3(ns UUID, name string) UUID {
 	return u
 }
 
-// NewV4 returns random generated UUID.
+// NewV4 returns a randomly generated UUID.
 func (g *rfc4122Generator) NewV4() (UUID, error) {
 	u := UUID{}
 	if _, err := io.ReadFull(g.rand, u[:]); err != nil {
@@ -175,7 +175,7 @@ func (g *rfc4122Generator) NewV4() (UUID, error) {
 	return u, nil
 }
 
-// NewV5 returns UUID based on SHA-1 hash of namespace UUID and name.
+// NewV5 returns a UUID based on SHA-1 hash of the namespace UUID and name.
 func (g *rfc4122Generator) NewV5(ns UUID, name string) UUID {
 	u := newFromHash(sha1.New(), ns, name)
 	u.SetVersion(V5)
@@ -184,7 +184,7 @@ func (g *rfc4122Generator) NewV5(ns UUID, name string) UUID {
 	return u
 }
 
-// Returns epoch and clock sequence.
+// Returns the epoch and clock sequence.
 func (g *rfc4122Generator) getClockSequence() (uint64, uint16, error) {
 	var err error
 	g.clockSequenceOnce.Do(func() {
@@ -212,7 +212,7 @@ func (g *rfc4122Generator) getClockSequence() (uint64, uint16, error) {
 	return timeNow, g.clockSequence, nil
 }
 
-// Returns hardware address.
+// Returns the hardware address.
 func (g *rfc4122Generator) getHardwareAddr() ([]byte, error) {
 	var err error
 	g.hardwareAddrOnce.Do(func() {
@@ -227,7 +227,7 @@ func (g *rfc4122Generator) getHardwareAddr() ([]byte, error) {
 		if _, err = io.ReadFull(g.rand, g.hardwareAddr[:]); err != nil {
 			return
 		}
-		// Set multicast bit as recommended by RFC 4122
+		// Set multicast bit as recommended by RFC-4122
 		g.hardwareAddr[0] |= 0x01
 	})
 	if err != nil {
@@ -236,13 +236,13 @@ func (g *rfc4122Generator) getHardwareAddr() ([]byte, error) {
 	return g.hardwareAddr[:], nil
 }
 
-// Returns difference in 100-nanosecond intervals between
-// UUID epoch (October 15, 1582) and current time.
+// Returns the difference between UUID epoch (October 15, 1582)
+// and current time in 100-nanosecond intervals.
 func (g *rfc4122Generator) getEpoch() uint64 {
 	return epochStart + uint64(g.epochFunc().UnixNano()/100)
 }
 
-// Returns UUID based on hashing of namespace UUID and name.
+// Returns the UUID based on the hashing of the namespace UUID and name.
 func newFromHash(h hash.Hash, ns UUID, name string) UUID {
 	u := UUID{}
 	h.Write(ns[:])
@@ -252,7 +252,7 @@ func newFromHash(h hash.Hash, ns UUID, name string) UUID {
 	return u
 }
 
-// Returns hardware address.
+// Returns the hardware address.
 func defaultHWAddrFunc() (net.HardwareAddr, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
