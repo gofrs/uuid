@@ -225,7 +225,7 @@ func (g *rfc4122Generator) getHardwareAddr() ([]byte, error) {
 		if _, err = io.ReadFull(g.rand, g.hardwareAddr[:]); err != nil {
 			return
 		}
-		// Set multicast bit as recommended by RFC 4122
+		// Set multicast bit as recommended by RFC-4122
 		g.hardwareAddr[0] |= 0x01
 	})
 	if err != nil {

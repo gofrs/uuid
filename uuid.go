@@ -19,11 +19,14 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// Package uuid provides implementations of the Universally Unique Identifier (UUID), as specified in RFC 4122 and DCE 1.1.
+// Package uuid provides implementations of the Universally Unique Identifier (UUID), as specified in RFC-4122 and DCE 1.1.
 //
-// RFC 4122 (https://tools.ietf.org/html/rfc4122) provides the specification for versions 1, 3, 4, and 5.
+// RFC-4122[1] provides the specification for versions 1, 3, 4, and 5.
 //
-// DCE 1.1 (http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01) provides the specification for version 2.
+// DCE 1.1[2] provides the specification for version 2.
+//
+// [1] https://tools.ietf.org/html/rfc4122
+// [2] http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01
 package uuid
 
 import (
@@ -34,7 +37,7 @@ import (
 // Size of a UUID in bytes.
 const Size = 16
 
-// UUID representation compliant with specification described in RFC 4122.
+// UUID representation compliant with specification described in RFC-4122.
 type UUID [Size]byte
 
 // UUID versions.
@@ -68,7 +71,7 @@ var (
 	byteGroups = []int{8, 4, 4, 4, 12}
 )
 
-// Nil is special form of UUID that is specified to have all 128 bits set to zero.
+// Nil is nil UUID, as specified in RFC-4122, that has all 128 bits set to zero.
 var Nil = UUID{}
 
 // Predefined namespace UUIDs.
@@ -110,7 +113,7 @@ func (u UUID) Bytes() []byte {
 	return u[:]
 }
 
-// String returns a canonical string representation of the UUID:
+// String returns a canonical RFC-4122 string representation of the UUID:
 // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
 func (u UUID) String() string {
 	buf := make([]byte, 36)

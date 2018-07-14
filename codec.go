@@ -35,7 +35,7 @@ func FromBytes(input []byte) (u UUID, err error) {
 }
 
 // FromBytesOrNil returns a UUID generated from the raw byte slice input.
-// Same behavior as FromBytes(), but returns a Nil UUID instead of an error.
+// Same behavior as FromBytes(), but returns uuid.Nil instead of an error.
 func FromBytesOrNil(input []byte) UUID {
 	uuid, err := FromBytes(input)
 	if err != nil {
@@ -52,7 +52,7 @@ func FromString(input string) (u UUID, err error) {
 }
 
 // FromStringOrNil returns a UUID parsed from the input string.
-// Same behavior as FromString(), but returns a Nil UUID instead of an error.
+// Same behavior as FromString(), but returns uuid.Nil instead of an error.
 func FromStringOrNil(input string) UUID {
 	uuid, err := FromString(input)
 	if err != nil {
@@ -108,7 +108,7 @@ func (u *UUID) UnmarshalText(text []byte) (err error) {
 	}
 }
 
-// decodeCanonical decodes UUID strings that are formatted like the following format:
+// decodeCanonical decodes UUID strings that are formatted as defined in RFC-4122 (section 3):
 // "6ba7b810-9dad-11d1-80b4-00c04fd430c8".
 func (u *UUID) decodeCanonical(t []byte) (err error) {
 	if t[8] != '-' || t[13] != '-' || t[18] != '-' || t[23] != '-' {
@@ -133,7 +133,7 @@ func (u *UUID) decodeCanonical(t []byte) (err error) {
 	return
 }
 
-// decodeHashLike decodes UUID strings that are formatted like the following format:
+// decodeHashLike decodes UUID strings that are using the following format:
 //  "6ba7b8109dad11d180b400c04fd430c8".
 func (u *UUID) decodeHashLike(t []byte) (err error) {
 	src := t[:]
@@ -145,7 +145,7 @@ func (u *UUID) decodeHashLike(t []byte) (err error) {
 	return
 }
 
-// decodeBraced decodes UUID strings that are formatted like the following formats:
+// decodeBraced decodes UUID strings that are using the following formats:
 //  "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}"
 //  "{6ba7b8109dad11d180b400c04fd430c8}".
 func (u *UUID) decodeBraced(t []byte) (err error) {
@@ -158,7 +158,7 @@ func (u *UUID) decodeBraced(t []byte) (err error) {
 	return u.decodePlain(t[1 : l-1])
 }
 
-// decodeURN decodes UUID strings that are formatted like the following formats:
+// decodeURN decodes UUID strings that are using the following formats:
 //  "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 //  "urn:uuid:6ba7b8109dad11d180b400c04fd430c8".
 func (u *UUID) decodeURN(t []byte) (err error) {
@@ -173,7 +173,7 @@ func (u *UUID) decodeURN(t []byte) (err error) {
 	return u.decodePlain(t[9:total])
 }
 
-// decodePlain decodes UUID strings that are formatted like the following formats:
+// decodePlain decodes UUID strings that are using the following formats:
 //  "6ba7b810-9dad-11d1-80b4-00c04fd430c8" or in hash-like format
 //  "6ba7b8109dad11d180b400c04fd430c8".
 func (u *UUID) decodePlain(t []byte) (err error) {
