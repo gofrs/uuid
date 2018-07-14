@@ -215,7 +215,8 @@ func (g *rfc4122Generator) getClockSequence() (uint64, uint16, error) {
 func (g *rfc4122Generator) getHardwareAddr() ([]byte, error) {
 	var err error
 	g.hardwareAddrOnce.Do(func() {
-		if hwAddr, err := g.hwAddrFunc(); err == nil {
+		var hwAddr net.HardwareAddr
+		if hwAddr, err = g.hwAddrFunc(); err == nil {
 			copy(g.hardwareAddr[:], hwAddr)
 			return
 		}
