@@ -43,7 +43,8 @@ type epochFunc func() time.Time
 type hwAddrFunc func() (net.HardwareAddr, error)
 
 var (
-	global = newRFC4122Generator()
+	// DefaultGenerator is the default Generator used.
+	DefaultGenerator = newRFC4122Generator()
 
 	posixUID = uint32(os.Getuid())
 	posixGID = uint32(os.Getgid())
@@ -51,27 +52,27 @@ var (
 
 // NewV1 returns UUID based on current timestamp and MAC address.
 func NewV1() (UUID, error) {
-	return global.NewV1()
+	return DefaultGenerator.NewV1()
 }
 
 // NewV2 returns DCE Security UUID based on POSIX UID/GID.
 func NewV2(domain byte) (UUID, error) {
-	return global.NewV2(domain)
+	return DefaultGenerator.NewV2(domain)
 }
 
 // NewV3 returns UUID based on MD5 hash of namespace UUID and name.
 func NewV3(ns UUID, name string) UUID {
-	return global.NewV3(ns, name)
+	return DefaultGenerator.NewV3(ns, name)
 }
 
 // NewV4 returns random generated UUID.
 func NewV4() (UUID, error) {
-	return global.NewV4()
+	return DefaultGenerator.NewV4()
 }
 
 // NewV5 returns UUID based on SHA-1 hash of namespace UUID and name.
 func NewV5(ns UUID, name string) UUID {
-	return global.NewV5(ns, name)
+	return DefaultGenerator.NewV5(ns, name)
 }
 
 // Generator provides interface for generating UUIDs.
