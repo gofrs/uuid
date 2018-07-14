@@ -44,9 +44,6 @@ type hwAddrFunc func() (net.HardwareAddr, error)
 
 var (
 	global = newRFC4122Generator()
-
-	posixUID = uint32(os.Getuid())
-	posixGID = uint32(os.Getgid())
 )
 
 // NewV1 returns UUID based on current timestamp and MAC address.
@@ -140,9 +137,9 @@ func (g *rfc4122Generator) NewV2(domain byte) (UUID, error) {
 
 	switch domain {
 	case DomainPerson:
-		binary.BigEndian.PutUint32(u[:], posixUID)
+		binary.BigEndian.PutUint32(u[:], uint32(os.Getuid()))
 	case DomainGroup:
-		binary.BigEndian.PutUint32(u[:], posixGID)
+		binary.BigEndian.PutUint32(u[:], uint32(os.Getgid()))
 	}
 
 	u[9] = domain
