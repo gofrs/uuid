@@ -90,7 +90,8 @@ func (s *codecTestSuite) TestFromString(c *C) {
 	s2 := "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}"
 	s3 := "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 	s4 := "6ba7b8109dad11d180b400c04fd430c8"
-	s5 := "urn:uuid:6ba7b8109dad11d180b400c04fd430c8"
+	s5 := "{6ba7b8109dad11d180b400c04fd430c8}"
+	s6 := "urn:uuid:6ba7b8109dad11d180b400c04fd430c8"
 
 	_, err := FromString("")
 	c.Assert(err, NotNil)
@@ -114,6 +115,10 @@ func (s *codecTestSuite) TestFromString(c *C) {
 	u5, err := FromString(s5)
 	c.Assert(err, IsNil)
 	c.Assert(u5, Equals, u)
+
+	u6, err := FromString(s6)
+	c.Assert(err, IsNil)
+	c.Assert(u6, Equals, u)
 }
 
 func (s *codecTestSuite) BenchmarkFromString(c *C) {
@@ -190,14 +195,26 @@ func (s *codecTestSuite) TestFromStringInvalid(c *C) {
 }
 
 func (s *codecTestSuite) TestFromStringOrNil(c *C) {
+	expect := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
+
 	u := FromStringOrNil("")
 	c.Assert(u, Equals, Nil)
+
+	s1 := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+	u = FromStringOrNil(s1)
+	c.Assert(u, Equals, expect)
 }
 
 func (s *codecTestSuite) TestFromBytesOrNil(c *C) {
+	expect := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
+
 	b := []byte{}
 	u := FromBytesOrNil(b)
 	c.Assert(u, Equals, Nil)
+
+	b1 := []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
+	u = FromBytesOrNil(b1)
+	c.Assert(u, Equals, expect)
 }
 
 func (s *codecTestSuite) TestMarshalText(c *C) {
