@@ -95,13 +95,11 @@ func (u *UUID) UnmarshalText(text []byte) (err error) {
 	switch len(text) {
 	case 32:
 		return u.decodeHashLike(text)
+	case 34, 38:
+		return u.decodeBraced(text)
 	case 36:
 		return u.decodeCanonical(text)
-	case 38:
-		return u.decodeBraced(text)
-	case 41:
-		fallthrough
-	case 45:
+	case 41, 45:
 		return u.decodeURN(text)
 	default:
 		return fmt.Errorf("uuid: incorrect UUID length: %s", text)

@@ -90,7 +90,8 @@ func (s *codecTestSuite) TestFromString(c *C) {
 	s2 := "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}"
 	s3 := "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
 	s4 := "6ba7b8109dad11d180b400c04fd430c8"
-	s5 := "urn:uuid:6ba7b8109dad11d180b400c04fd430c8"
+	s5 := "{6ba7b8109dad11d180b400c04fd430c8}"
+	s6 := "urn:uuid:6ba7b8109dad11d180b400c04fd430c8"
 
 	_, err := FromString("")
 	c.Assert(err, NotNil)
@@ -114,6 +115,10 @@ func (s *codecTestSuite) TestFromString(c *C) {
 	u5, err := FromString(s5)
 	c.Assert(err, IsNil)
 	c.Assert(u5, Equals, u)
+
+	u6, err := FromString(s6)
+	c.Assert(err, IsNil)
+	c.Assert(u6, Equals, u)
 }
 
 func (s *codecTestSuite) BenchmarkFromString(c *C) {
