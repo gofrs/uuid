@@ -30,10 +30,14 @@ package uuid
 //     $ go get github.com/dvyukov/go-fuzz/...
 //     $ cd $GOPATH/src/github.com/gofrs/uuid
 //     $ go-fuzz-build github.com/gofrs/uuid
-//     $ go-fuzz -bin=uuid-fuzz.zip -workdir=/path/to/work/directory
+//     $ go-fuzz -bin=uuid-fuzz.zip -workdir=./testdata
 //
-// TODO(acln): clarify how to set up work directory, seed initial corpus
-// with UUIDs used by FromString tests
+// If you make significant changes to FromString / UnmarshalText and add
+// new cases to fromStringTests (in codec_test.go), please run
+//
+//    $ go test -seed_fuzz_corpus
+//
+// to seed the corpus with the new interesting inputs, then run the fuzzer.
 func Fuzz(data []byte) int {
 	_, err := FromString(string(data))
 	if err != nil {

@@ -25,76 +25,120 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
-
-	. "gopkg.in/check.v1"
 )
 
-// Hook up gocheck into the "go test" runner.
-func TestUUID(t *testing.T) { TestingT(t) }
-
-type testSuite struct{}
-
-var _ = Suite(&testSuite{})
-
-func (s *testSuite) TestBytes(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	bytes1 := []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	c.Assert(bytes.Equal(u.Bytes(), bytes1), Equals, true)
+func TestUUID(t *testing.T) {
+	t.Run("Bytes", testUUIDBytes)
+	t.Run("String", testUUIDString)
+	t.Run("Version", testUUIDVersion)
+	t.Run("Variant", testUUIDVariant)
+	t.Run("SetVersion", testUUIDSetVersion)
+	t.Run("SetVariant", testUUIDSetVariant)
 }
 
-func (s *testSuite) TestString(c *C) {
-	c.Assert(NamespaceDNS.String(), Equals, "6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+func testUUIDBytes(t *testing.T) {
+	got := codecTestUUID.Bytes()
+	want := codecTestData
+	if !bytes.Equal(got, want) {
+		t.Errorf("%v.Bytes() = %x, want %x", codecTestUUID, got, want)
+	}
 }
 
-func (s *testSuite) TestEqual(c *C) {
-	c.Assert(Equal(NamespaceDNS, NamespaceDNS), Equals, true)
-	c.Assert(Equal(NamespaceDNS, NamespaceURL), Equals, false)
+func testUUIDString(t *testing.T) {
+	got := NamespaceDNS.String()
+	want := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+	if got != want {
+		t.Errorf("%v.String() = %q, want %q", NamespaceDNS, got, want)
+	}
 }
 
-func (s *testSuite) TestVersion(c *C) {
+func testUUIDVersion(t *testing.T) {
 	u := UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	c.Assert(u.Version(), Equals, V1)
+	if got, want := u.Version(), V1; got != want {
+		t.Errorf("%v.Version() == %d, want %d", u, got, want)
+	}
 }
 
-func (s *testSuite) TestSetVersion(c *C) {
+func testUUIDVariant(t *testing.T) {
+	tests := []struct {
+		u    UUID
+		want byte
+	}{
+		{
+			u:    UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			want: VariantNCS,
+		},
+		{
+			u:    UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			want: VariantRFC4122,
+		},
+		{
+			u:    UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			want: VariantMicrosoft,
+		},
+		{
+			u:    UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+			want: VariantFuture,
+		},
+	}
+	for _, tt := range tests {
+		if got := tt.u.Variant(); got != tt.want {
+			t.Errorf("%v.Variant() == %d, want %d", tt.u, got, tt.want)
+		}
+	}
+}
+
+func testUUIDSetVersion(t *testing.T) {
 	u := UUID{}
-	u.SetVersion(4)
-	c.Assert(u.Version(), Equals, V4)
+	want := V4
+	u.SetVersion(want)
+	if got := u.Version(); got != want {
+		t.Errorf("%v.Version() == %d after SetVersion(%d)", u, got, want)
+	}
 }
 
-func (s *testSuite) TestVariant(c *C) {
-	u1 := UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	c.Assert(u1.Variant(), Equals, VariantNCS)
-
-	u2 := UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	c.Assert(u2.Variant(), Equals, VariantRFC4122)
-
-	u3 := UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	c.Assert(u3.Variant(), Equals, VariantMicrosoft)
-
-	u4 := UUID{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-	c.Assert(u4.Variant(), Equals, VariantFuture)
+func testUUIDSetVariant(t *testing.T) {
+	variants := []byte{
+		VariantNCS,
+		VariantRFC4122,
+		VariantMicrosoft,
+		VariantFuture,
+	}
+	for _, want := range variants {
+		u := UUID{}
+		u.SetVariant(want)
+		if got := u.Variant(); got != want {
+			t.Errorf("%v.Variant() == %d after SetVariant(%d)", u, got, want)
+		}
+	}
 }
 
-func (s *testSuite) TestSetVariant(c *C) {
-	u := UUID{}
-	u.SetVariant(VariantNCS)
-	c.Assert(u.Variant(), Equals, VariantNCS)
-	u.SetVariant(VariantRFC4122)
-	c.Assert(u.Variant(), Equals, VariantRFC4122)
-	u.SetVariant(VariantMicrosoft)
-	c.Assert(u.Variant(), Equals, VariantMicrosoft)
-	u.SetVariant(VariantFuture)
-	c.Assert(u.Variant(), Equals, VariantFuture)
+func TestEqual(t *testing.T) {
+	if !Equal(NamespaceDNS, NamespaceDNS) {
+		t.Errorf("NamespaceDNS (%v) != NamespaceDNS (%v)", NamespaceDNS, NamespaceDNS)
+	}
+	if Equal(NamespaceDNS, NamespaceURL) {
+		t.Errorf("NamespaceDNS (%v) == NamespaceURL (%v)", NamespaceDNS, NamespaceURL)
+	}
 }
 
-func (s *testSuite) TestMust(c *C) {
+func TestMust(t *testing.T) {
+	sentinel := fmt.Errorf("uuid: sentinel error")
 	defer func() {
-		c.Assert(recover(), NotNil)
+		r := recover()
+		if r == nil {
+			t.Fatalf("did not panic, want %v", sentinel)
+		}
+		err, ok := r.(error)
+		if !ok {
+			t.Fatalf("panicked with %T, want error (%v)", r, sentinel)
+		}
+		if err != sentinel {
+			t.Fatalf("panicked with %v, want %v", err, sentinel)
+		}
 	}()
-	Must(func() (UUID, error) {
-		return Nil, fmt.Errorf("uuid: expected error")
-	}())
+	fn := func() (UUID, error) {
+		return Nil, sentinel
+	}
+	Must(fn())
 }

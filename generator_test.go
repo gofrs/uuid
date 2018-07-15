@@ -26,10 +26,354 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net"
+	"testing"
 	"time"
-
-	. "gopkg.in/check.v1"
 )
+
+func TestGenerator(t *testing.T) {
+	t.Run("NewV1", testNewV1)
+	t.Run("NewV2", testNewV2)
+	t.Run("NewV3", testNewV3)
+	t.Run("NewV4", testNewV4)
+	t.Run("NewV5", testNewV5)
+}
+
+func testNewV1(t *testing.T) {
+	t.Run("Basic", testNewV1Basic)
+	t.Run("DifferentAcrossCalls", testNewV1DifferentAcrossCalls)
+	t.Run("StaleEpoch", testNewV1StaleEpoch)
+	t.Run("FaultyRand", testNewV1FaultyRand)
+	t.Run("MissingNetwork", testNewV1MissingNetwork)
+	t.Run("MissingNetworkFaultyRand", testNewV1MissingNetworkFaultyRand)
+}
+
+func testNewV1Basic(t *testing.T) {
+	u, err := NewV1()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := u.Version(), V1; got != want {
+		t.Errorf("generated UUID with version %d, want %d", got, want)
+	}
+	if got, want := u.Variant(), VariantRFC4122; got != want {
+		t.Errorf("generated UUID with variant %d, want %d", got, want)
+	}
+}
+
+func testNewV1DifferentAcrossCalls(t *testing.T) {
+	u1, err := NewV1()
+	if err != nil {
+		t.Fatal(err)
+	}
+	u2, err := NewV1()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u1 == u2 {
+		t.Errorf("generated identical UUIDs across calls: %v", u1)
+	}
+}
+
+func testNewV1StaleEpoch(t *testing.T) {
+	g := &rfc4122Generator{
+		epochFunc: func() time.Time {
+			return time.Unix(0, 0)
+		},
+		hwAddrFunc: defaultHWAddrFunc,
+		rand:       rand.Reader,
+	}
+	u1, err := g.NewV1()
+	if err != nil {
+		t.Fatal(err)
+	}
+	u2, err := g.NewV1()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u1 == u2 {
+		t.Errorf("generated identical UUIDs across calls: %v", u1)
+	}
+}
+
+func testNewV1FaultyRand(t *testing.T) {
+	g := &rfc4122Generator{
+		epochFunc:  time.Now,
+		hwAddrFunc: defaultHWAddrFunc,
+		rand: &faultyReader{
+			readToFail: 0, // fail immediately
+		},
+	}
+	u, err := g.NewV1()
+	if err == nil {
+		t.Fatalf("got %v, want error", u)
+	}
+	if u != Nil {
+		t.Fatalf("got %v on error, want Nil", u)
+	}
+}
+
+func testNewV1MissingNetwork(t *testing.T) {
+	g := &rfc4122Generator{
+		epochFunc: time.Now,
+		hwAddrFunc: func() (net.HardwareAddr, error) {
+			return []byte{}, fmt.Errorf("uuid: no hw address found")
+		},
+		rand: rand.Reader,
+	}
+	_, err := g.NewV1()
+	if err != nil {
+		t.Errorf("did not handle missing network interfaces: %v", err)
+	}
+}
+
+func testNewV1MissingNetworkFaultyRand(t *testing.T) {
+	g := &rfc4122Generator{
+		epochFunc: time.Now,
+		hwAddrFunc: func() (net.HardwareAddr, error) {
+			return []byte{}, fmt.Errorf("uuid: no hw address found")
+		},
+		rand: &faultyReader{
+			readToFail: 1,
+		},
+	}
+	u, err := g.NewV1()
+	if err == nil {
+		t.Errorf("did not error on faulty reader and missing network, got %v", u)
+	}
+}
+
+func testNewV2(t *testing.T) {
+	t.Run("Basic", testNewV2Basic)
+	t.Run("DifferentAcrossCalls", testNewV2DifferentAcrossCalls)
+	t.Run("FaultyRand", testNewV2FaultyRand)
+}
+
+func testNewV2Basic(t *testing.T) {
+	domains := []byte{
+		DomainPerson,
+		DomainGroup,
+		DomainOrg,
+	}
+	for _, domain := range domains {
+		u, err := NewV2(domain)
+		if err != nil {
+			t.Errorf("NewV2(%d): %v", domain, err)
+		}
+		if got, want := u.Version(), V2; got != want {
+			t.Errorf("NewV2(%d) generated UUID with version %d, want %d", domain, got, want)
+		}
+		if got, want := u.Variant(), VariantRFC4122; got != want {
+			t.Errorf("NewV2(%d) generated UUID with variant %d, want %d", domain, got, want)
+		}
+	}
+}
+
+func testNewV2DifferentAcrossCalls(t *testing.T) {
+	u1, err := NewV2(DomainOrg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u2, err := NewV2(DomainOrg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u1 == u2 {
+		t.Errorf("generated identical UUIDs across calls: %v", u1)
+	}
+}
+
+func testNewV2FaultyRand(t *testing.T) {
+	g := &rfc4122Generator{
+		epochFunc:  time.Now,
+		hwAddrFunc: defaultHWAddrFunc,
+		rand: &faultyReader{
+			readToFail: 0, // fail immediately
+		},
+	}
+	u, err := g.NewV2(DomainPerson)
+	if err == nil {
+		t.Fatalf("got %v, want error", u)
+	}
+	if u != Nil {
+		t.Fatalf("got %v on error, want Nil", u)
+	}
+}
+
+func testNewV3(t *testing.T) {
+	t.Run("Basic", testNewV3Basic)
+	t.Run("EqualNames", testNewV3EqualNames)
+	t.Run("DifferentNamespaces", testNewV3DifferentNamespaces)
+}
+
+func testNewV3Basic(t *testing.T) {
+	ns := NamespaceDNS
+	name := "www.example.com"
+	u := NewV3(ns, name)
+	if got, want := u.Version(), V3; got != want {
+		t.Errorf("NewV3(%v, %q): got version %d, want %d", ns, name, got, want)
+	}
+	if got, want := u.Variant(), VariantRFC4122; got != want {
+		t.Errorf("NewV3(%v, %q): got variant %d, want %d", ns, name, got, want)
+	}
+	want := "5df41881-3aed-3515-88a7-2f4a814cf09e"
+	if got := u.String(); got != want {
+		t.Errorf("NewV3(%v, %q) = %q, want %q", ns, name, got, want)
+	}
+}
+
+func testNewV3EqualNames(t *testing.T) {
+	ns := NamespaceDNS
+	name := "example.com"
+	u1 := NewV3(ns, name)
+	u2 := NewV3(ns, name)
+	if u1 != u2 {
+		t.Errorf("NewV3(%v, %q) generated %v and %v across two calls", ns, name, u1, u2)
+	}
+}
+
+func testNewV3DifferentNamespaces(t *testing.T) {
+	name := "example.com"
+	ns1 := NamespaceDNS
+	ns2 := NamespaceURL
+	u1 := NewV3(ns1, name)
+	u2 := NewV3(ns2, name)
+	if u1 == u2 {
+		t.Errorf("NewV3(%v, %q) == NewV3(%d, %q) (%v)", ns1, name, ns2, name, u1)
+	}
+}
+
+func testNewV4(t *testing.T) {
+	t.Run("Basic", testNewV4Basic)
+	t.Run("DifferentAcrossCalls", testNewV4DifferentAcrossCalls)
+	t.Run("FaultyRand", testNewV4FaultyRand)
+	t.Run("ShortRandomRead", testNewV4ShortRandomRead)
+}
+
+func testNewV4Basic(t *testing.T) {
+	u, err := NewV4()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := u.Version(), V4; got != want {
+		t.Errorf("got version %d, want %d", got, want)
+	}
+	if got, want := u.Variant(), VariantRFC4122; got != want {
+		t.Errorf("got variant %d, want %d", got, want)
+	}
+}
+
+func testNewV4DifferentAcrossCalls(t *testing.T) {
+	u1, err := NewV4()
+	if err != nil {
+		t.Fatal(err)
+	}
+	u2, err := NewV4()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u1 == u2 {
+		t.Errorf("generated identical UUIDs across calls: %v", u1)
+	}
+}
+
+func testNewV4FaultyRand(t *testing.T) {
+	g := &rfc4122Generator{
+		epochFunc:  time.Now,
+		hwAddrFunc: defaultHWAddrFunc,
+		rand: &faultyReader{
+			readToFail: 0, // fail immediately
+		},
+	}
+	u, err := g.NewV4()
+	if err == nil {
+		t.Errorf("got %v, nil error", u)
+	}
+}
+
+func testNewV4ShortRandomRead(t *testing.T) {
+	g := &rfc4122Generator{
+		epochFunc: time.Now,
+		hwAddrFunc: func() (net.HardwareAddr, error) {
+			return []byte{}, fmt.Errorf("uuid: no hw address found")
+		},
+		rand: bytes.NewReader([]byte{42}),
+	}
+	u, err := g.NewV4()
+	if err == nil {
+		t.Errorf("got %v, nil error", u)
+	}
+}
+
+func testNewV5(t *testing.T) {
+	t.Run("Basic", testNewV5Basic)
+	t.Run("EqualNames", testNewV5EqualNames)
+	t.Run("DifferentNamespaces", testNewV5DifferentNamespaces)
+}
+
+func testNewV5Basic(t *testing.T) {
+	ns := NamespaceDNS
+	name := "www.example.com"
+	u := NewV5(ns, name)
+	if got, want := u.Version(), V5; got != want {
+		t.Errorf("NewV5(%v, %q): got version %d, want %d", ns, name, got, want)
+	}
+	if got, want := u.Variant(), VariantRFC4122; got != want {
+		t.Errorf("NewV5(%v, %q): got variant %d, want %d", ns, name, got, want)
+	}
+	want := "2ed6657d-e927-568b-95e1-2665a8aea6a2"
+	if got := u.String(); got != want {
+		t.Errorf("NewV5(%v, %q) = %q, want %q", ns, name, got, want)
+	}
+}
+
+func testNewV5EqualNames(t *testing.T) {
+	ns := NamespaceDNS
+	name := "example.com"
+	u1 := NewV5(ns, name)
+	u2 := NewV5(ns, name)
+	if u1 != u2 {
+		t.Errorf("NewV5(%v, %q) generated %v and %v across two calls", ns, name, u1, u2)
+	}
+}
+
+func testNewV5DifferentNamespaces(t *testing.T) {
+	name := "example.com"
+	ns1 := NamespaceDNS
+	ns2 := NamespaceURL
+	u1 := NewV5(ns1, name)
+	u2 := NewV5(ns2, name)
+	if u1 == u2 {
+		t.Errorf("NewV5(%v, %q) == NewV5(%v, %q) (%v)", ns1, name, ns2, name, u1)
+	}
+}
+
+func BenchmarkGenerator(b *testing.B) {
+	b.Run("NewV1", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			NewV1()
+		}
+	})
+	b.Run("NewV2", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			NewV2(DomainOrg)
+		}
+	})
+	b.Run("NewV3", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			NewV3(NamespaceDNS, "www.example.com")
+		}
+	})
+	b.Run("NewV4", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			NewV4()
+		}
+	})
+	b.Run("NewV5", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			NewV5(NamespaceDNS, "www.example.com")
+		}
+	})
+}
 
 type faultyReader struct {
 	callsNum   int
@@ -42,198 +386,4 @@ func (r *faultyReader) Read(dest []byte) (int, error) {
 		return 0, fmt.Errorf("io: reader is faulty")
 	}
 	return rand.Read(dest)
-}
-
-type genTestSuite struct{}
-
-var _ = Suite(&genTestSuite{})
-
-func (s *genTestSuite) TestNewV1(c *C) {
-	u1, err := NewV1()
-	c.Assert(err, IsNil)
-	c.Assert(u1.Version(), Equals, V1)
-	c.Assert(u1.Variant(), Equals, VariantRFC4122)
-
-	u2, err := NewV1()
-	c.Assert(err, IsNil)
-	c.Assert(u1, Not(Equals), u2)
-}
-
-func (s *genTestSuite) TestNewV1EpochStale(c *C) {
-	g := &rfc4122Generator{
-		epochFunc: func() time.Time {
-			return time.Unix(0, 0)
-		},
-		hwAddrFunc: defaultHWAddrFunc,
-		rand:       rand.Reader,
-	}
-	u1, err := g.NewV1()
-	c.Assert(err, IsNil)
-	u2, err := g.NewV1()
-	c.Assert(err, IsNil)
-	c.Assert(u1, Not(Equals), u2)
-}
-
-func (s *genTestSuite) TestNewV1FaultyRand(c *C) {
-	g := &rfc4122Generator{
-		epochFunc:  time.Now,
-		hwAddrFunc: defaultHWAddrFunc,
-		rand:       &faultyReader{},
-	}
-	u1, err := g.NewV1()
-	c.Assert(err, NotNil)
-	c.Assert(u1, Equals, Nil)
-}
-
-func (s *genTestSuite) TestNewV1MissingNetworkInterfaces(c *C) {
-	g := &rfc4122Generator{
-		epochFunc: time.Now,
-		hwAddrFunc: func() (net.HardwareAddr, error) {
-			return []byte{}, fmt.Errorf("uuid: no hw address found")
-		},
-		rand: rand.Reader,
-	}
-	_, err := g.NewV1()
-	c.Assert(err, IsNil)
-}
-
-func (s *genTestSuite) TestNewV1MissingNetInterfacesAndFaultyRand(c *C) {
-	g := &rfc4122Generator{
-		epochFunc: time.Now,
-		hwAddrFunc: func() (net.HardwareAddr, error) {
-			return []byte{}, fmt.Errorf("uuid: no hw address found")
-		},
-		rand: &faultyReader{
-			readToFail: 1,
-		},
-	}
-	u1, err := g.NewV1()
-	c.Assert(err, NotNil)
-	c.Assert(u1, Equals, Nil)
-}
-
-func (s *genTestSuite) BenchmarkNewV1(c *C) {
-	for i := 0; i < c.N; i++ {
-		NewV1()
-	}
-}
-
-func (s *genTestSuite) TestNewV2(c *C) {
-	u1, err := NewV2(DomainPerson)
-	c.Assert(err, IsNil)
-	c.Assert(u1.Version(), Equals, V2)
-	c.Assert(u1.Variant(), Equals, VariantRFC4122)
-
-	u2, err := NewV2(DomainGroup)
-	c.Assert(err, IsNil)
-	c.Assert(u2.Version(), Equals, V2)
-	c.Assert(u2.Variant(), Equals, VariantRFC4122)
-
-	u3, err := NewV2(DomainOrg)
-	c.Assert(err, IsNil)
-	c.Assert(u3.Version(), Equals, V2)
-	c.Assert(u3.Variant(), Equals, VariantRFC4122)
-}
-
-func (s *genTestSuite) TestNewV2FaultyRand(c *C) {
-	g := &rfc4122Generator{
-		epochFunc:  time.Now,
-		hwAddrFunc: defaultHWAddrFunc,
-		rand:       &faultyReader{},
-	}
-	u1, err := g.NewV2(DomainPerson)
-	c.Assert(err, NotNil)
-	c.Assert(u1, Equals, Nil)
-}
-
-func (s *genTestSuite) BenchmarkNewV2(c *C) {
-	for i := 0; i < c.N; i++ {
-		NewV2(DomainPerson)
-	}
-}
-
-func (s *genTestSuite) TestNewV3(c *C) {
-	u1 := NewV3(NamespaceDNS, "www.example.com")
-	c.Assert(u1.Version(), Equals, V3)
-	c.Assert(u1.Variant(), Equals, VariantRFC4122)
-	c.Assert(u1.String(), Equals, "5df41881-3aed-3515-88a7-2f4a814cf09e")
-
-	u2 := NewV3(NamespaceDNS, "example.com")
-	c.Assert(u2, Not(Equals), u1)
-
-	u3 := NewV3(NamespaceDNS, "example.com")
-	c.Assert(u3, Equals, u2)
-
-	u4 := NewV3(NamespaceURL, "example.com")
-	c.Assert(u4, Not(Equals), u3)
-}
-
-func (s *genTestSuite) BenchmarkNewV3(c *C) {
-	for i := 0; i < c.N; i++ {
-		NewV3(NamespaceDNS, "www.example.com")
-	}
-}
-
-func (s *genTestSuite) TestNewV4(c *C) {
-	u1, err := NewV4()
-	c.Assert(err, IsNil)
-	c.Assert(u1.Version(), Equals, V4)
-	c.Assert(u1.Variant(), Equals, VariantRFC4122)
-
-	u2, err := NewV4()
-	c.Assert(err, IsNil)
-	c.Assert(u1, Not(Equals), u2)
-}
-
-func (s *genTestSuite) TestNewV4FaultyRand(c *C) {
-	g := &rfc4122Generator{
-		epochFunc:  time.Now,
-		hwAddrFunc: defaultHWAddrFunc,
-		rand:       &faultyReader{},
-	}
-	u1, err := g.NewV4()
-	c.Assert(err, NotNil)
-	c.Assert(u1, Equals, Nil)
-}
-
-func (s *genTestSuite) TestNewV4IncompleteRandomReader(c *C) {
-	r := bytes.NewReader([]byte{42})
-
-	g := &rfc4122Generator{
-		epochFunc: time.Now,
-		hwAddrFunc: func() (net.HardwareAddr, error) {
-			return []byte{}, fmt.Errorf("uuid: no hw address found")
-		},
-		rand: r,
-	}
-	_, err := g.NewV4()
-	c.Assert(err, NotNil)
-}
-
-func (s *genTestSuite) BenchmarkNewV4(c *C) {
-	for i := 0; i < c.N; i++ {
-		NewV4()
-	}
-}
-
-func (s *genTestSuite) TestNewV5(c *C) {
-	u1 := NewV5(NamespaceDNS, "www.example.com")
-	c.Assert(u1.Version(), Equals, V5)
-	c.Assert(u1.Variant(), Equals, VariantRFC4122)
-	c.Assert(u1.String(), Equals, "2ed6657d-e927-568b-95e1-2665a8aea6a2")
-
-	u2 := NewV5(NamespaceDNS, "example.com")
-	c.Assert(u2, Not(Equals), u1)
-
-	u3 := NewV5(NamespaceDNS, "example.com")
-	c.Assert(u3, Equals, u2)
-
-	u4 := NewV5(NamespaceURL, "example.com")
-	c.Assert(u4, Not(Equals), u3)
-}
-
-func (s *genTestSuite) BenchmarkNewV5(c *C) {
-	for i := 0; i < c.N; i++ {
-		NewV5(NamespaceDNS, "www.example.com")
-	}
 }

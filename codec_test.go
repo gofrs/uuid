@@ -23,246 +23,271 @@ package uuid
 
 import (
 	"bytes"
-
-	. "gopkg.in/check.v1"
+	"flag"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"testing"
 )
 
-type codecTestSuite struct{}
+// codecTestData holds []byte data for a UUID we commonly use for testing.
+var codecTestData = []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
 
-var _ = Suite(&codecTestSuite{})
+// codecTestUUID is the UUID value corresponding to codecTestData.
+var codecTestUUID = UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
 
-func (s *codecTestSuite) TestFromBytes(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	b1 := []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	u1, err := FromBytes(b1)
-	c.Assert(err, IsNil)
-	c.Assert(u1, Equals, u)
-
-	b2 := []byte{}
-	_, err = FromBytes(b2)
-	c.Assert(err, NotNil)
+func TestFromBytes(t *testing.T) {
+	t.Run("Valid", func(t *testing.T) {
+		got, err := FromBytes(codecTestData)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != codecTestUUID {
+			t.Fatalf("FromBytes(%x) = %v, want %v", codecTestData, got, codecTestUUID)
+		}
+	})
+	t.Run("Invalid", func(t *testing.T) {
+		var short [][]byte
+		for i := 0; i < len(codecTestData); i++ {
+			short = append(short, codecTestData[:i])
+		}
+		var long [][]byte
+		for i := 1; i < 17; i++ {
+			tmp := append(codecTestData, make([]byte, i)...)
+			long = append(long, tmp)
+		}
+		invalid := append(short, long...)
+		for _, b := range invalid {
+			got, err := FromBytes(b)
+			if err == nil {
+				t.Fatalf("FromBytes(%x): want err != nil, got %v", b, got)
+			}
+		}
+	})
 }
 
-func (s *codecTestSuite) BenchmarkFromBytes(c *C) {
-	bytes := []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	for i := 0; i < c.N; i++ {
-		FromBytes(bytes)
+func TestFromBytesOrNil(t *testing.T) {
+	t.Run("Invalid", func(t *testing.T) {
+		b := []byte{4, 8, 15, 16, 23, 42}
+		got := FromBytesOrNil(b)
+		if got != Nil {
+			t.Errorf("FromBytesOrNil(%x): got %v, want %v", b, got, Nil)
+		}
+	})
+	t.Run("Valid", func(t *testing.T) {
+		got := FromBytesOrNil(codecTestData)
+		if got != codecTestUUID {
+			t.Errorf("FromBytesOrNil(%x): got %v, want %v", codecTestData, got, codecTestUUID)
+		}
+	})
+
+}
+
+type fromStringTest struct {
+	input   string
+	variant string
+}
+
+// Run runs the FromString test in a subtest of t, named by fst.variant.
+func (fst fromStringTest) Run(t *testing.T) {
+	t.Run(fst.variant, func(t *testing.T) {
+		got, err := FromString(fst.input)
+		if err != nil {
+			t.Fatalf("FromString(%q): %v", fst.input, err)
+		}
+		if want := codecTestUUID; got != want {
+			t.Fatalf("FromString(%q) = %v, want %v", fst.input, got, want)
+		}
+	})
+}
+
+// fromStringTests contains UUID variants that are expected to be parsed
+// successfully by UnmarshalText / FromString.
+//
+// variants must be unique across elements of this slice. Please see the
+// comment in fuzz.go if you change this slice or add new tests to it.
+var fromStringTests = []fromStringTest{
+	{
+		input:   "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+		variant: "Canonical",
+	},
+	{
+		input:   "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
+		variant: "BracedCanonical",
+	},
+	{
+		input:   "{6ba7b8109dad11d180b400c04fd430c8}",
+		variant: "BracedHashlike",
+	},
+	{
+		input:   "6ba7b8109dad11d180b400c04fd430c8",
+		variant: "Hashlike",
+	},
+	{
+		input:   "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+		variant: "URNCanonical",
+	},
+	{
+		input:   "urn:uuid:6ba7b8109dad11d180b400c04fd430c8",
+		variant: "URNHashlike",
+	},
+}
+
+var invalidFromStringInputs = []string{
+	// short
+	"6ba7b810-9dad-11d1-80b4-00c04fd430c",
+	"6ba7b8109dad11d180b400c04fd430c",
+
+	// invalid hex
+	"6ba7b8109dad11d180b400c04fd430q8",
+
+	// long
+	"6ba7b810-9dad-11d1-80b4-00c04fd430c8=",
+	"6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
+	"{6ba7b810-9dad-11d1-80b4-00c04fd430c8}f",
+	"6ba7b810-9dad-11d1-80b4-00c04fd430c800c04fd430c8",
+
+	// malformed in other ways
+	"ba7b8109dad11d180b400c04fd430c8}",
+	"6ba7b8109dad11d180b400c04fd430c86ba7b8109dad11d180b400c04fd430c8",
+	"urn:uuid:{6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
+	"uuid:urn:6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+	"uuid:urn:6ba7b8109dad11d180b400c04fd430c8",
+	"6ba7b8109-dad-11d1-80b4-00c04fd430c8",
+	"6ba7b810-9dad1-1d1-80b4-00c04fd430c8",
+	"6ba7b810-9dad-11d18-0b4-00c04fd430c8",
+	"6ba7b810-9dad-11d1-80b40-0c04fd430c8",
+	"6ba7b810+9dad+11d1+80b4+00c04fd430c8",
+	"(6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
+	"{6ba7b810-9dad-11d1-80b4-00c04fd430c8>",
+	"zba7b810-9dad-11d1-80b4-00c04fd430c8",
+	"6ba7b810-9dad11d180b400c04fd430c8",
+	"6ba7b8109dad-11d180b400c04fd430c8",
+	"6ba7b8109dad11d1-80b400c04fd430c8",
+	"6ba7b8109dad11d180b4-00c04fd430c8",
+}
+
+func TestFromString(t *testing.T) {
+	t.Run("Valid", func(t *testing.T) {
+		for _, fst := range fromStringTests {
+			fst.Run(t)
+		}
+	})
+	t.Run("Invalid", func(t *testing.T) {
+		for _, s := range invalidFromStringInputs {
+			got, err := FromString(s)
+			if err == nil {
+				t.Errorf("FromString(%q): want err != nil, got %v", s, got)
+			}
+		}
+	})
+}
+
+func TestFromStringOrNil(t *testing.T) {
+	t.Run("Invalid", func(t *testing.T) {
+		s := "bad"
+		got := FromStringOrNil(s)
+		if got != Nil {
+			t.Errorf("FromStringOrNil(%q): got %v, want Nil", s, got)
+		}
+	})
+	t.Run("Valid", func(t *testing.T) {
+		s := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+		got := FromStringOrNil(s)
+		if got != codecTestUUID {
+			t.Errorf("FromStringOrNil(%q): got %v, want %v", s, got, codecTestUUID)
+		}
+	})
+}
+
+func TestMarshalBinary(t *testing.T) {
+	got, err := codecTestUUID.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, codecTestData) {
+		t.Fatalf("%v.MarshalBinary() = %x, want %x", codecTestUUID, got, codecTestData)
 	}
 }
 
-func (s *codecTestSuite) TestMarshalBinary(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	b1 := []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	b2, err := u.MarshalBinary()
-	c.Assert(err, IsNil)
-	c.Assert(bytes.Equal(b1, b2), Equals, true)
-}
-
-func (s *codecTestSuite) BenchmarkMarshalBinary(c *C) {
-	u, err := NewV4()
-	c.Assert(err, IsNil)
-	for i := 0; i < c.N; i++ {
-		u.MarshalBinary()
+func TestMarshalText(t *testing.T) {
+	want := []byte("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+	got, err := codecTestUUID.MarshalText()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("%v.MarshalText(): got %s, want %s", codecTestUUID, got, want)
 	}
 }
 
-func (s *codecTestSuite) TestUnmarshalBinary(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	b1 := []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
+var stringBenchmarkSink string
 
-	u1 := UUID{}
-	err := u1.UnmarshalBinary(b1)
-	c.Assert(err, IsNil)
-	c.Assert(u1, Equals, u)
-
-	b2 := []byte{}
-	u2 := UUID{}
-	err = u2.UnmarshalBinary(b2)
-	c.Assert(err, NotNil)
-}
-
-func (s *codecTestSuite) TestFromString(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	s1 := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-	s2 := "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}"
-	s3 := "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-	s4 := "6ba7b8109dad11d180b400c04fd430c8"
-	s5 := "{6ba7b8109dad11d180b400c04fd430c8}"
-	s6 := "urn:uuid:6ba7b8109dad11d180b400c04fd430c8"
-
-	_, err := FromString("")
-	c.Assert(err, NotNil)
-
-	u1, err := FromString(s1)
-	c.Assert(err, IsNil)
-	c.Assert(u1, Equals, u)
-
-	u2, err := FromString(s2)
-	c.Assert(err, IsNil)
-	c.Assert(u2, Equals, u)
-
-	u3, err := FromString(s3)
-	c.Assert(err, IsNil)
-	c.Assert(u3, Equals, u)
-
-	u4, err := FromString(s4)
-	c.Assert(err, IsNil)
-	c.Assert(u4, Equals, u)
-
-	u5, err := FromString(s5)
-	c.Assert(err, IsNil)
-	c.Assert(u5, Equals, u)
-
-	u6, err := FromString(s6)
-	c.Assert(err, IsNil)
-	c.Assert(u6, Equals, u)
-}
-
-func (s *codecTestSuite) BenchmarkFromString(c *C) {
-	str := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-	for i := 0; i < c.N; i++ {
-		FromString(str)
+func BenchmarkString(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		stringBenchmarkSink = codecTestUUID.String()
 	}
 }
 
-func (s *codecTestSuite) BenchmarkFromStringUrn(c *C) {
-	str := "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-	for i := 0; i < c.N; i++ {
-		FromString(str)
+func BenchmarkFromBytes(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		FromBytes(codecTestData)
 	}
 }
 
-func (s *codecTestSuite) BenchmarkFromStringWithBrackets(c *C) {
-	str := "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}"
-	for i := 0; i < c.N; i++ {
-		FromString(str)
+func BenchmarkFromString(b *testing.B) {
+	b.Run("canonical", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			FromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+		}
+	})
+	b.Run("urn", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			FromString("urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+		}
+	})
+	b.Run("braced", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			FromString("{6ba7b810-9dad-11d1-80b4-00c04fd430c8}")
+		}
+	})
+}
+
+func BenchmarkMarshalBinary(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		codecTestUUID.MarshalBinary()
 	}
 }
 
-func (s *codecTestSuite) TestFromStringShort(c *C) {
-	// Invalid 35-character UUID string
-	s1 := "6ba7b810-9dad-11d1-80b4-00c04fd430c"
-
-	for i := len(s1); i >= 0; i-- {
-		_, err := FromString(s1[:i])
-		c.Assert(err, NotNil)
+func BenchmarkMarshalText(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		codecTestUUID.MarshalText()
 	}
 }
 
-func (s *codecTestSuite) TestFromStringLong(c *C) {
-	// Invalid 37+ character UUID string
-	strings := []string{
-		"6ba7b810-9dad-11d1-80b4-00c04fd430c8=",
-		"6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
-		"{6ba7b810-9dad-11d1-80b4-00c04fd430c8}f",
-		"6ba7b810-9dad-11d1-80b4-00c04fd430c800c04fd430c8",
+var seedFuzzCorpus = flag.Bool("seed_fuzz_corpus", false, "seed fuzz test corpus")
+
+func TestSeedFuzzCorpus(t *testing.T) {
+	// flag.Parse() is called for us by the test binary.
+	if !*seedFuzzCorpus {
+		t.Skip("seeding fuzz test corpus only on demand")
 	}
-
-	for _, str := range strings {
-		_, err := FromString(str)
-		c.Assert(err, NotNil)
+	corpusDir := filepath.Join(".", "testdata", "corpus")
+	writeSeedFile := func(name, data string) error {
+		path := filepath.Join(corpusDir, name)
+		return ioutil.WriteFile(path, []byte(data), os.ModePerm)
 	}
-}
-
-func (s *codecTestSuite) TestFromStringInvalid(c *C) {
-	// Invalid UUID string formats
-	strings := []string{
-		"6ba7b8109dad11d180b400c04fd430c86ba7b8109dad11d180b400c04fd430c8",
-		"urn:uuid:{6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
-		"uuid:urn:6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-		"uuid:urn:6ba7b8109dad11d180b400c04fd430c8",
-		"6ba7b8109-dad-11d1-80b4-00c04fd430c8",
-		"6ba7b810-9dad1-1d1-80b4-00c04fd430c8",
-		"6ba7b810-9dad-11d18-0b4-00c04fd430c8",
-		"6ba7b810-9dad-11d1-80b40-0c04fd430c8",
-		"6ba7b810+9dad+11d1+80b4+00c04fd430c8",
-		"(6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
-		"{6ba7b810-9dad-11d1-80b4-00c04fd430c8>",
-		"zba7b810-9dad-11d1-80b4-00c04fd430c8",
-		"6ba7b810-9dad11d180b400c04fd430c8",
-		"6ba7b8109dad-11d180b400c04fd430c8",
-		"6ba7b8109dad11d1-80b400c04fd430c8",
-		"6ba7b8109dad11d180b4-00c04fd430c8",
+	for _, fst := range fromStringTests {
+		name := "seed_valid_" + fst.variant
+		if err := writeSeedFile(name, fst.input); err != nil {
+			t.Fatal(err)
+		}
 	}
-
-	for _, str := range strings {
-		_, err := FromString(str)
-		c.Assert(err, NotNil)
-	}
-}
-
-func (s *codecTestSuite) TestFromStringOrNil(c *C) {
-	expect := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	u := FromStringOrNil("")
-	c.Assert(u, Equals, Nil)
-
-	s1 := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-	u = FromStringOrNil(s1)
-	c.Assert(u, Equals, expect)
-}
-
-func (s *codecTestSuite) TestFromBytesOrNil(c *C) {
-	expect := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	b := []byte{}
-	u := FromBytesOrNil(b)
-	c.Assert(u, Equals, Nil)
-
-	b1 := []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	u = FromBytesOrNil(b1)
-	c.Assert(u, Equals, expect)
-}
-
-func (s *codecTestSuite) TestMarshalText(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	b1 := []byte("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-
-	b2, err := u.MarshalText()
-	c.Assert(err, IsNil)
-	c.Assert(bytes.Equal(b1, b2), Equals, true)
-}
-
-func (s *codecTestSuite) BenchmarkMarshalText(c *C) {
-	u, err := NewV4()
-	c.Assert(err, IsNil)
-	for i := 0; i < c.N; i++ {
-		u.MarshalText()
-	}
-}
-
-func (s *codecTestSuite) TestUnmarshalText(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	b1 := []byte("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-
-	u1 := UUID{}
-	err := u1.UnmarshalText(b1)
-	c.Assert(err, IsNil)
-	c.Assert(u1, Equals, u)
-
-	b2 := []byte("")
-	u2 := UUID{}
-	err = u2.UnmarshalText(b2)
-	c.Assert(err, NotNil)
-}
-
-func (s *codecTestSuite) BenchmarkUnmarshalText(c *C) {
-	bytes := []byte("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-	u := UUID{}
-	for i := 0; i < c.N; i++ {
-		u.UnmarshalText(bytes)
-	}
-}
-
-var sink string
-
-func (s *codecTestSuite) BenchmarkMarshalToString(c *C) {
-	u, err := NewV4()
-	c.Assert(err, IsNil)
-	for i := 0; i < c.N; i++ {
-		sink = u.String()
+	for i, s := range invalidFromStringInputs {
+		name := fmt.Sprintf("seed_invalid_%d", i)
+		if err := writeSeedFile(name, s); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
