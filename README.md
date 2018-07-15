@@ -1,32 +1,62 @@
-# UUID package for Go language
+# UUID
 
+[![License](https://img.shields.io/github/license/gofrs/uuid.svg)](https://github.com/gofrs/uuid/blob/master/LICENSE)
 [![Build Status](https://travis-ci.org/gofrs/uuid.svg?branch=master)](https://travis-ci.org/gofrs/uuid)
-[![Coverage Status](https://coveralls.io/repos/github/gofrs/uuid/badge.svg?branch=master)](https://coveralls.io/github/gofrs/uuid)
 [![GoDoc](http://godoc.org/github.com/gofrs/uuid?status.svg)](http://godoc.org/github.com/gofrs/uuid)
+[![Coverage Status](https://coveralls.io/repos/github/gofrs/uuid/badge.svg?branch=master)](https://coveralls.io/github/gofrs/uuid)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gofrs/uuid)](https://goreportcard.com/report/github.com/gofrs/uuid)
 
-This package provides pure Go implementation of Universally Unique Identifier (UUID). Supported both creation and parsing of UUIDs.
+Package uuid provides a pure Go implementation of Universally Unique Identifiers
+(UUID) variant as defined in RFC-4122. This package supports both the creation
+and parsing of UUIDs in different formats.
 
-With 100% test coverage and benchmarks out of box.
-
-Supported versions:
-* Version 1, based on timestamp and MAC address (RFC 4122)
+This package supports the following UUID versions:
+* Version 1, based on timestamp and MAC address (RFC-4122)
 * Version 2, based on timestamp, MAC address and POSIX UID/GID (DCE 1.1)
-* Version 3, based on MD5 hashing (RFC 4122)
-* Version 4, based on random numbers (RFC 4122)
-* Version 5, based on SHA-1 hashing (RFC 4122)
+* Version 3, based on MD5 hashing of a named value (RFC-4122)
+* Version 4, based on random numbers (RFC-4122)
+* Version 5, based on SHA-1 hashing of a named value (RFC-4122)
+
+## Project History
+
+This project was originally forked from the
+[github.com/satori/go.uuid](https://github.com/satori/go.uuid) repository after
+it appeared to be no longer maintained, while exhibiting [critical
+flaws](https://github.com/satori/go.uuid/issues/73). We have decided to take
+over this project to ensure it receives regular maintenance for the benefit of
+the larger Go community.
+
+We'd like to thank Maxim Bublis for his hard work on the original iteration of
+the package.
+
+## License
+
+This source code of this package is released under the MIT License. Please see
+the [LICENSE](https://github.com/gofrs/uuid/blob/master/LICENSE) for the full
+content of the license.
 
 ## Installation
 
-Use the `go` command:
+It is recommended to use a package manager like `dep` that understands tagged
+releases of a package, as well as semantic versioning.
 
-	$ go get github.com/gofrs/uuid
+If you are unable to make use of a dependency manager with your project, you can
+use the `go get` command to download it directly:
+
+```Shell
+$ go get github.com/gofrs/uuid
+```
 
 ## Requirements
 
-UUID package is tested for Go >= 1.3.
-Go 1.2 may work, but it is not tested and support for this version is not actively maintained.
+This package is regularly tested against Go 1.3+, due to issues with the testing
+libraries on Go 1.2 or less. This package may work perfectly fine with Go 1.2,
+but it is not tested and support for this version is not actively maintained.
 
-## Example
+## Usage
+
+Here is a quick overview of how to use this package. For more detailed
+documentation, please see the [GoDoc Page](http://godoc.org/github.com/gofrs/uuid).
 
 ```go
 package main
@@ -59,17 +89,7 @@ func main() {
 }
 ```
 
-## Documentation
+## References
 
-[Documentation](http://godoc.org/github.com/gofrs/uuid) is hosted at GoDoc project.
-
-## Links
-* [RFC 4122](http://tools.ietf.org/html/rfc4122)
+* [RFC-4122](https://tools.ietf.org/html/rfc4122)
 * [DCE 1.1: Authentication and Security Services](http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01)
-
-## Copyright
-
-Copyright (C) 2013-2018 by Maxim Bublis <b@codemonkey.ru>.
-
-UUID package released under MIT License.
-See [LICENSE](https://github.com/gofrs/uuid/blob/master/LICENSE) for details.
