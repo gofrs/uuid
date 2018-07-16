@@ -49,9 +49,9 @@ $ go get github.com/gofrs/uuid
 
 ## Requirements
 
-This package is regularly tested against Go 1.3+, due to issues with the testing
-libraries on Go 1.2 or less. This package may work perfectly fine with Go 1.2,
-but it is not tested and support for this version is not actively maintained.
+Due to subtests not being supported in older versions of Go, this package is
+only regularly tested against Go 1.7+. This package may work perfectly fine with
+Go 1.2+, but support for these older versions is not actively maintained.
 
 ## Usage
 
