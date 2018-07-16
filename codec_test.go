@@ -249,6 +249,13 @@ func (s *codecTestSuite) TestUnmarshalText(c *C) {
 	c.Assert(err, NotNil)
 }
 
+func (s *codecTestSuite) TestDecodePlainWithWrongLength(c *C) {
+	u := UUID{}
+	e := u.decodePlain([]byte{'4', '2'})
+
+	c.Assert(e, NotNil)
+}
+
 func (s *codecTestSuite) BenchmarkUnmarshalText(c *C) {
 	bytes := []byte("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 	u := UUID{}
