@@ -222,6 +222,16 @@ func TestMarshalText(t *testing.T) {
 	}
 }
 
+func TestDecodePlainWithWrongLength(t *testing.T) {
+	arg := []byte{'4', '2'}
+
+	u := UUID{}
+
+	if u.decodePlain(arg) == nil {
+		t.Errorf("%v.decodePlain(%q): should return error, but it did not", u, arg)
+	}
+}
+
 var stringBenchmarkSink string
 
 func BenchmarkString(b *testing.B) {
