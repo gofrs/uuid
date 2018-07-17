@@ -21,116 +21,144 @@
 
 package uuid
 
-import (
-	. "gopkg.in/check.v1"
-)
+import "testing"
 
-type sqlTestSuite struct{}
-
-var _ = Suite(&sqlTestSuite{})
-
-func (s *sqlTestSuite) TestValue(c *C) {
-	u, err := FromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-	c.Assert(err, IsNil)
-
-	val, err := u.Value()
-	c.Assert(err, IsNil)
-	c.Assert(val, Equals, u.String())
+func TestSQL(t *testing.T) {
+	t.Run("Value", testSQLValue)
+	t.Run("Scan", func(t *testing.T) {
+		t.Run("Binary", testSQLScanBinary)
+		t.Run("String", testSQLScanString)
+		t.Run("Text", testSQLScanText)
+		t.Run("Unsupported", testSQLScanUnsupported)
+		t.Run("Nil", testSQLScanNil)
+	})
 }
 
-func (s *sqlTestSuite) TestValueNil(c *C) {
-	u := UUID{}
-
-	val, err := u.Value()
-	c.Assert(err, IsNil)
-	c.Assert(val, Equals, Nil.String())
+func testSQLValue(t *testing.T) {
+	v, err := codecTestUUID.Value()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := v.(string)
+	if !ok {
+		t.Fatalf("Value() returned %T, want string", v)
+	}
+	if want := codecTestUUID.String(); got != want {
+		t.Errorf("Value() == %q, want %q", got, want)
+	}
 }
 
-func (s *sqlTestSuite) TestNullUUIDValueNil(c *C) {
-	u := NullUUID{}
-
-	val, err := u.Value()
-	c.Assert(err, IsNil)
-	c.Assert(val, IsNil)
+func testSQLScanBinary(t *testing.T) {
+	got := UUID{}
+	err := got.Scan(codecTestData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != codecTestUUID {
+		t.Errorf("Scan(%x): got %v, want %v", codecTestData, got, codecTestUUID)
+	}
 }
 
-func (s *sqlTestSuite) TestScanBinary(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	b1 := []byte{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	u1 := UUID{}
-	err := u1.Scan(b1)
-	c.Assert(err, IsNil)
-	c.Assert(u, Equals, u1)
-
-	b2 := []byte{}
-	u2 := UUID{}
-
-	err = u2.Scan(b2)
-	c.Assert(err, NotNil)
+func testSQLScanString(t *testing.T) {
+	s := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+	got := UUID{}
+	err := got.Scan(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != codecTestUUID {
+		t.Errorf("Scan(%q): got %v, want %v", s, got, codecTestUUID)
+	}
 }
 
-func (s *sqlTestSuite) TestScanString(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	s1 := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-
-	u1 := UUID{}
-	err := u1.Scan(s1)
-	c.Assert(err, IsNil)
-	c.Assert(u, Equals, u1)
-
-	s2 := ""
-	u2 := UUID{}
-
-	err = u2.Scan(s2)
-	c.Assert(err, NotNil)
+func testSQLScanText(t *testing.T) {
+	text := []byte("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+	got := UUID{}
+	err := got.Scan(text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != codecTestUUID {
+		t.Errorf("Scan(%q): got %v, want %v", text, got, codecTestUUID)
+	}
 }
 
-func (s *sqlTestSuite) TestScanText(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	b1 := []byte("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
-
-	u1 := UUID{}
-	err := u1.Scan(b1)
-	c.Assert(err, IsNil)
-	c.Assert(u, Equals, u1)
-
-	b2 := []byte("")
-	u2 := UUID{}
-	err = u2.Scan(b2)
-	c.Assert(err, NotNil)
+func testSQLScanUnsupported(t *testing.T) {
+	unsupported := []interface{}{
+		true,
+		42,
+	}
+	for _, v := range unsupported {
+		got := UUID{}
+		err := got.Scan(v)
+		if err == nil {
+			t.Errorf("Scan(%T) succeeded, got %v", v, got)
+		}
+	}
 }
 
-func (s *sqlTestSuite) TestScanUnsupported(c *C) {
-	u := UUID{}
-
-	err := u.Scan(true)
-	c.Assert(err, NotNil)
+func testSQLScanNil(t *testing.T) {
+	got := UUID{}
+	err := got.Scan(nil)
+	if err == nil {
+		t.Errorf("Scan(nil) succeeded, got %v", got)
+	}
 }
 
-func (s *sqlTestSuite) TestScanNil(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-
-	err := u.Scan(nil)
-	c.Assert(err, NotNil)
-}
-
-func (s *sqlTestSuite) TestNullUUIDScanValid(c *C) {
-	u := UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}
-	s1 := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-
-	u1 := NullUUID{}
-	err := u1.Scan(s1)
-	c.Assert(err, IsNil)
-	c.Assert(u1.Valid, Equals, true)
-	c.Assert(u1.UUID, Equals, u)
-}
-
-func (s *sqlTestSuite) TestNullUUIDScanNil(c *C) {
-	u := NullUUID{UUID{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8}, true}
-
-	err := u.Scan(nil)
-	c.Assert(err, IsNil)
-	c.Assert(u.Valid, Equals, false)
-	c.Assert(u.UUID, Equals, Nil)
+func TestNullUUID(t *testing.T) {
+	t.Run("NilValue", func(t *testing.T) {
+		nu := NullUUID{}
+		got, err := nu.Value()
+		if got != nil {
+			t.Errorf("null NullUUID.Value returned non-nil driver.Value")
+		}
+		if err != nil {
+			t.Errorf("null NullUUID.Value returned non-nil error")
+		}
+	})
+	t.Run("ValidValue", func(t *testing.T) {
+		nu := NullUUID{
+			Valid: true,
+			UUID:  codecTestUUID,
+		}
+		got, err := nu.Value()
+		if err != nil {
+			t.Fatal(err)
+		}
+		s, ok := got.(string)
+		if !ok {
+			t.Errorf("Value() returned %T, want string", got)
+		}
+		want := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+		if s != want {
+			t.Errorf("%v.Value() == %s, want %s", nu, s, want)
+		}
+	})
+	t.Run("ScanValid", func(t *testing.T) {
+		s := "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+		u := NullUUID{}
+		err := u.Scan(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !u.Valid {
+			t.Errorf("Valid == false after Scan(%q)", s)
+		}
+		if u.UUID != codecTestUUID {
+			t.Errorf("UUID == %v after Scan(%q), want %v", u.UUID, s, codecTestUUID)
+		}
+	})
+	t.Run("ScanNil", func(t *testing.T) {
+		u := NullUUID{}
+		err := u.Scan(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if u.Valid {
+			t.Error("NullUUID is valid after Scan(nil)")
+		}
+		if u.UUID != Nil {
+			t.Errorf("NullUUID.UUID is %v after Scan(nil) want Nil", u.UUID)
+		}
+	})
 }
