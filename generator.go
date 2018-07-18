@@ -42,10 +42,10 @@ const epochStart = 122192928000000000
 type epochFunc func() time.Time
 type hwAddrFunc func() (net.HardwareAddr, error)
 
-var (
-	// DefaultGenerator is the default Generator used.
-	DefaultGenerator = newRFC4122Generator()
+// DefaultGenerator is the default Generator used.
+var DefaultGenerator = newRFC4122Generator()
 
+var (
 	posixUID = uint32(os.Getuid())
 	posixGID = uint32(os.Getgid())
 )
