@@ -35,6 +35,12 @@ This source code of this package is released under the MIT License. Please see
 the [LICENSE](https://github.com/gofrs/uuid/blob/master/LICENSE) for the full
 content of the license.
 
+## Recommended Package Version
+
+We recommend using v2.0.0+ of this package, as versions prior to 2.0.0 were
+created before our fork of the original package and have some known
+deficiencies.
+
 ## Installation
 
 It is recommended to use a package manager like `dep` that understands tagged
