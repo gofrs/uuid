@@ -37,7 +37,7 @@ import (
 // Size of a UUID in bytes.
 const Size = 16
 
-// UUID representation compliant with specification described in RFC-4122.
+// UUID is an array type to represent the value of a UUID, as defined in RFC-4122.
 type UUID [Size]byte
 
 // UUID versions.
@@ -71,7 +71,8 @@ var (
 	byteGroups = []int{8, 4, 4, 4, 12}
 )
 
-// Nil is nil UUID, as specified in RFC-4122, that has all 128 bits set to zero.
+// Nil is the nil UUID, as specified in RFC-4122, that has all 128 bits set to
+// zero.
 var Nil = UUID{}
 
 // Predefined namespace UUIDs.
