@@ -83,6 +83,9 @@ var (
 )
 
 // Equal returns true if a and b are equivalent.
+//
+// Deprecated: this function is deprecated and will be removed in a future major
+// version, as values of type UUID are directly comparable using `==`.
 func Equal(a UUID, b UUID) bool {
 	return a == b
 }
