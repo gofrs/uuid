@@ -22,7 +22,9 @@
 package uuid
 
 import (
+	"bytes"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 )
 
@@ -75,4 +77,29 @@ func (u *NullUUID) Scan(src interface{}) error {
 	// Delegate to UUID Scan function
 	u.Valid = true
 	return u.UUID.Scan(src)
+}
+
+// MarshalJSON marshals the NullUUID as null or the nested UUID
+func (u NullUUID) MarshalJSON() ([]byte, error) {
+	if !u.Valid {
+		return json.Marshal(nil)
+	}
+
+	return json.Marshal(u.UUID)
+}
+
+// UnmarshalJSON unmarshals a NullUUID
+func (u *NullUUID) UnmarshalJSON(b []byte) error {
+	if bytes.Equal(b, []byte("null")) {
+		u.UUID, u.Valid = Nil, false
+		return nil
+	}
+
+	if err := json.Unmarshal(b, &u.UUID); err != nil {
+		return err
+	}
+
+	u.Valid = true
+
+	return nil
 }
