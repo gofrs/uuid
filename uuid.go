@@ -82,14 +82,6 @@ var (
 	NamespaceX500 = Must(FromString("6ba7b814-9dad-11d1-80b4-00c04fd430c8"))
 )
 
-// Equal returns true if a and b are equivalent.
-//
-// Deprecated: this function is deprecated and will be removed in a future major
-// version, as values of type UUID are directly comparable using `==`.
-func Equal(a UUID, b UUID) bool {
-	return a == b
-}
-
 // Version returns the algorithm version used to generate the UUID.
 func (u UUID) Version() byte {
 	return u[6] >> 4

@@ -113,15 +113,6 @@ func testUUIDSetVariant(t *testing.T) {
 	}
 }
 
-func TestEqual(t *testing.T) {
-	if !Equal(NamespaceDNS, NamespaceDNS) {
-		t.Errorf("NamespaceDNS (%v) != NamespaceDNS (%v)", NamespaceDNS, NamespaceDNS)
-	}
-	if Equal(NamespaceDNS, NamespaceURL) {
-		t.Errorf("NamespaceDNS (%v) == NamespaceURL (%v)", NamespaceDNS, NamespaceURL)
-	}
-}
-
 func TestMust(t *testing.T) {
 	sentinel := fmt.Errorf("uuid: sentinel error")
 	defer func() {
