@@ -30,10 +30,10 @@
 package uuid
 
 import (
-	"encoding/hex"
 	"encoding/binary"
-	"time"
+	"encoding/hex"
 	"fmt"
+	"time"
 )
 
 // Size of a UUID in bytes.
@@ -76,8 +76,8 @@ const _100nsPerSecond = 10000000
 
 // Time returns the UTC time.Time representation of a Timestamp
 func (t Timestamp) Time() (time.Time, error) {
-	secs := uint64(t)/_100nsPerSecond
-	nsecs := 100 * (uint64(t)%_100nsPerSecond)
+	secs := uint64(t) / _100nsPerSecond
+	nsecs := 100 * (uint64(t) % _100nsPerSecond)
 	return time.Unix(int64(secs)-(epochStart/_100nsPerSecond), int64(nsecs)), nil
 }
 
@@ -91,7 +91,7 @@ func TimestampFromV1(u UUID) (Timestamp, error) {
 	low := binary.BigEndian.Uint32(u[0:4])
 	mid := binary.BigEndian.Uint16(u[4:6])
 	hi := binary.BigEndian.Uint16(u[6:8]) & 0xfff
-	return Timestamp(low) + (Timestamp(mid) << 32) + (Timestamp(hi) << 48), nil
+	return Timestamp(uint64(low) + (uint64(mid) << 32) + (uint64(hi) << 48)), nil
 }
 
 // String parse helpers.

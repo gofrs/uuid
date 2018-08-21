@@ -137,21 +137,21 @@ func TestMust(t *testing.T) {
 
 func TestTimeFromTimestamp(t *testing.T) {
 	tests := []struct {
-		t Timestamp
+		t    Timestamp
 		want time.Time
 	}{
 		// a zero timestamp represents October 15, 1582 at midnight UTC
-		{ t: Timestamp(0), want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC) },
+		{t: Timestamp(0), want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},
 		// a one value is 100ns later
-		{ t: Timestamp(1), want: time.Date(1582, 10, 15, 0, 0, 0, 100, time.UTC) },
+		{t: Timestamp(1), want: time.Date(1582, 10, 15, 0, 0, 0, 100, time.UTC)},
 		// 10 million 100ns intervals later is one second
-		{ t: Timestamp(10000000), want: time.Date(1582, 10, 15, 0, 0, 1, 0, time.UTC) },
-		{ t: Timestamp(60*10000000), want: time.Date(1582, 10, 15, 0, 1, 0, 0, time.UTC) },
-		{ t: Timestamp(60*60*10000000), want: time.Date(1582, 10, 15, 1, 0, 0, 0, time.UTC) },
-		{ t: Timestamp(24*60*60*10000000), want: time.Date(1582, 10, 16, 0, 0, 0, 0, time.UTC) },
-		{ t: Timestamp(365*24*60*60*10000000), want: time.Date(1583, 10, 15, 0, 0, 0, 0, time.UTC) },
+		{t: Timestamp(10000000), want: time.Date(1582, 10, 15, 0, 0, 1, 0, time.UTC)},
+		{t: Timestamp(60 * 10000000), want: time.Date(1582, 10, 15, 0, 1, 0, 0, time.UTC)},
+		{t: Timestamp(60 * 60 * 10000000), want: time.Date(1582, 10, 15, 1, 0, 0, 0, time.UTC)},
+		{t: Timestamp(24 * 60 * 60 * 10000000), want: time.Date(1582, 10, 16, 0, 0, 0, 0, time.UTC)},
+		{t: Timestamp(365 * 24 * 60 * 60 * 10000000), want: time.Date(1583, 10, 15, 0, 0, 0, 0, time.UTC)},
 		// maximum timestamp value in a UUID is the year 5236
-		{ t: Timestamp(uint64(1<<60 - 1)), want: time.Date(5236, 03, 31, 21, 21, 0, 684697500, time.UTC) },
+		{t: Timestamp(uint64(1<<60 - 1)), want: time.Date(5236, 03, 31, 21, 21, 0, 684697500, time.UTC)},
 	}
 	for _, tt := range tests {
 		got, _ := tt.t.Time()
@@ -163,14 +163,14 @@ func TestTimeFromTimestamp(t *testing.T) {
 
 func TestTimestampFromV1(t *testing.T) {
 	tests := []struct {
-		u UUID
-		want Timestamp
+		u       UUID
+		want    Timestamp
 		wanterr bool
 	}{
 		{u: Must(NewV4()), wanterr: true},
 		{u: Must(FromString("00000000-0000-1000-0000-000000000000")), want: 0},
 		{u: Must(FromString("424f137e-a2aa-11e8-98d0-529269fb1459")), want: 137538640775418750},
-		{u: Must(FromString("ffffffff-ffff-1fff-ffff-ffffffffffff")), want: Timestamp(1<<60-1)},
+		{u: Must(FromString("ffffffff-ffff-1fff-ffff-ffffffffffff")), want: Timestamp(1<<60 - 1)},
 	}
 	for _, tt := range tests {
 		got, goterr := TimestampFromV1(tt.u)
@@ -181,4 +181,3 @@ func TestTimestampFromV1(t *testing.T) {
 		}
 	}
 }
-
