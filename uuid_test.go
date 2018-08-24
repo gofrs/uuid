@@ -181,3 +181,12 @@ func TestTimestampFromV1(t *testing.T) {
 		}
 	}
 }
+
+func TestEqual(t *testing.T) {
+	if !Equal(NamespaceDNS, NamespaceDNS) {
+		t.Error("NamespaceDNS != NamespaceDNS")
+	}
+	if Equal(NamespaceDNS, NamespaceURL) {
+		t.Error("NamespaceDNS == NamespaceURL")
+	}
+}

@@ -30,6 +30,7 @@
 package uuid
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -111,6 +112,11 @@ var (
 	NamespaceOID  = Must(FromString("6ba7b812-9dad-11d1-80b4-00c04fd430c8"))
 	NamespaceX500 = Must(FromString("6ba7b814-9dad-11d1-80b4-00c04fd430c8"))
 )
+
+// Equal returns true if u1 and u2 are equal, otherwise returns false.
+func Equal(u1 UUID, u2 UUID) bool {
+	return bytes.Equal(u1[:], u2[:])
+}
 
 // Version returns the algorithm version used to generate the UUID.
 func (u UUID) Version() byte {
