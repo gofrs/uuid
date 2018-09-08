@@ -149,10 +149,8 @@ func (u *UUID) decodeHashLike(t []byte) error {
 	src := t[:]
 	dst := u[:]
 
-	if _, err := hex.Decode(dst, src); err != nil {
-		return err
-	}
-	return nil
+	_, err := hex.Decode(dst, src)
+	return err
 }
 
 // decodeBraced decodes UUID strings that are using the following formats:
