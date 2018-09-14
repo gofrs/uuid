@@ -125,7 +125,7 @@ func (u *UUID) decodeCanonical(t []byte) error {
 		return fmt.Errorf("uuid: incorrect UUID format %s", t)
 	}
 
-	src := t[:]
+	src := t
 	dst := u[:]
 
 	for i, byteGroup := range byteGroups {
