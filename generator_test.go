@@ -24,8 +24,10 @@ package uuid
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"testing"
 	"time"
 )
@@ -373,6 +375,103 @@ func testNewV5DifferentNamespaces(t *testing.T) {
 	u2 := NewV5(ns2, name)
 	if u1 == u2 {
 		t.Errorf("NewV5(%v, %q) == NewV5(%v, %q) (%v)", ns1, name, ns2, name, u1)
+	}
+}
+
+func Test_defaultHWAddrFunc(t *testing.T) {
+	tests := []struct {
+		n  string
+		fn func() ([]net.Interface, error)
+		hw net.HardwareAddr
+		e  string
+	}{
+		{
+			n: "Error",
+			fn: func() ([]net.Interface, error) {
+				return nil, errors.New("controlled failure")
+			},
+			e: "controlled failure",
+		},
+		{
+			n: "NoValidHWAddrReturned",
+			fn: func() ([]net.Interface, error) {
+				s := []net.Interface{
+					{
+						Index:        1,
+						MTU:          1500,
+						Name:         "test0",
+						HardwareAddr: net.HardwareAddr{1, 2, 3, 4},
+					},
+					{
+						Index:        2,
+						MTU:          1500,
+						Name:         "lo0",
+						HardwareAddr: net.HardwareAddr{5, 6, 7, 8},
+					},
+				}
+
+				return s, nil
+			},
+			e: "uuid: no HW address found",
+		},
+		{
+			n: "ValidHWAddrReturned",
+			fn: func() ([]net.Interface, error) {
+				s := []net.Interface{
+					{
+						Index:        1,
+						MTU:          1500,
+						Name:         "test0",
+						HardwareAddr: net.HardwareAddr{1, 2, 3, 4},
+					},
+					{
+						Index:        2,
+						MTU:          1500,
+						Name:         "lo0",
+						HardwareAddr: net.HardwareAddr{5, 6, 7, 8, 9, 0},
+					},
+				}
+
+				return s, nil
+			},
+			hw: net.HardwareAddr{5, 6, 7, 8, 9, 0},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.n, func(t *testing.T) {
+			// set the netInterfaces variable (function) for the test
+			// and then set it back to default in the deferred function
+			netInterfaces = tt.fn
+			defer func() {
+				netInterfaces = net.Interfaces
+			}()
+
+			var hw net.HardwareAddr
+			var err error
+
+			hw, err = defaultHWAddrFunc()
+
+			if len(tt.e) > 0 {
+				if err == nil {
+					t.Fatalf("defaultHWAddrFunc() error = <nil>, should contain %q", tt.e)
+				}
+
+				if !strings.Contains(err.Error(), tt.e) {
+					t.Fatalf("defaultHWAddrFunc() error = %q, should contain %q", err.Error(), tt.e)
+				}
+
+				return
+			}
+
+			if err != nil && tt.e == "" {
+				t.Fatalf("defaultHWAddrFunc() error = %q, want <nil>", err.Error())
+			}
+
+			if !bytes.Equal(hw, tt.hw) {
+				t.Fatalf("hw = %#v, want %#v", hw, tt.hw)
+			}
+		})
 	}
 }
 

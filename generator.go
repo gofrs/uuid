@@ -284,9 +284,11 @@ func newFromHash(h hash.Hash, ns UUID, name string) UUID {
 	return u
 }
 
+var netInterfaces = net.Interfaces
+
 // Returns the hardware address.
 func defaultHWAddrFunc() (net.HardwareAddr, error) {
-	ifaces, err := net.Interfaces()
+	ifaces, err := netInterfaces()
 	if err != nil {
 		return []byte{}, err
 	}
