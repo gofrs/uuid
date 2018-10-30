@@ -118,6 +118,7 @@ func TestNullUUID(t *testing.T) {
 	t.Run("Scan", func(t *testing.T) {
 		t.Run("Nil", testNullUUIDScanNil)
 		t.Run("Valid", testNullUUIDScanValid)
+		t.Run("UUID", testNullUUIDScanUUID)
 	})
 
 	t.Run("MarshalJSON", func(t *testing.T) {
@@ -190,6 +191,20 @@ func testNullUUIDScanValid(t *testing.T) {
 	}
 	if u.UUID != codecTestUUID {
 		t.Errorf("UUID == %v after Scan(%q), want %v", u.UUID, s, codecTestUUID)
+	}
+}
+
+func testNullUUIDScanUUID(t *testing.T) {
+	u := NullUUID{}
+	err := u.Scan(codecTestUUID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !u.Valid {
+		t.Errorf("Valid == false after scan(%v)", codecTestUUID)
+	}
+	if u.UUID != codecTestUUID {
+		t.Errorf("UUID == %v after Scan(%v), want %v", u.UUID, codecTestUUID, codecTestUUID)
 	}
 }
 
