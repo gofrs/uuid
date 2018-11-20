@@ -37,9 +37,30 @@ content of the license.
 
 ## Recommended Package Version
 
-We recommend using v2.0.0+ of this package, as versions prior to 2.0.0 were
-created before our fork of the original package and have some known
-deficiencies.
+For new users, we recommend using v4.0.0+ of this package, under the
+import path `github.com/gofrs/uuid/v4`. For users who need a replacement
+for `satori/go.uuid` at v1.2.0, we recommend v2.1.0 under the import path
+`github.com/gofrs/uuid`. Versions prior to 2.0.0 were created before our fork
+of the original package and have some known deficiencies, so we recommend
+against using them.
+
+Versions prior to v4.0.0 may exhibit issues with import paths, as described
+in more detail by [#61](https://github.com/gofrs/uuid/issues/61).
+
+The v4.0.0 release fixes [#61](https://github.com/gofrs/uuid/issues/61),
+and unifies import paths under `github.com/gofrs/uuid/v4`. Here is what
+this means for users:
+
+If you are using modules, importing `github.com/gofrs/uuid/v3` will
+resolve to v3.1.2 with `+incompatible`. Importing `github.com/gofrs/uuid`
+with modules will also resolve to v3.1.2. Existing code will continue to
+work. To resolve the `+incompatible` issue, upgrade to v4.0.0+, under the
+new unified import path: `github.com/gofrs/uuid/v4`.
+
+If you are not using modules, or if you are using a version of Go without
+"minimal module awareness" (these versions are 1.9.7+, 1.10.3+ and 1.11+),
+importing `github.com/gofrs/uuid` will resolve to at most v3.1.2, while
+importing `github.com/gofrs/uuid/v4` will give you access to v4.0.0+.
 
 ## Installation
 
@@ -50,7 +71,7 @@ If you are unable to make use of a dependency manager with your project, you can
 use the `go get` command to download it directly:
 
 ```Shell
-$ go get github.com/gofrs/uuid
+$ go get github.com/gofrs/uuid/v4
 ```
 
 ## Requirements
@@ -62,7 +83,7 @@ Go 1.2+, but support for these older versions is not actively maintained.
 ## Usage
 
 Here is a quick overview of how to use this package. For more detailed
-documentation, please see the [GoDoc Page](http://godoc.org/github.com/gofrs/uuid).
+documentation, please see the [GoDoc Page](http://godoc.org/github.com/gofrs/uuid/v4).
 
 ```go
 package main
@@ -70,7 +91,7 @@ package main
 import (
 	"log"
 
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v4"
 )
 
 // Create a Version 4 UUID, panicking on error.
