@@ -59,6 +59,10 @@ Due to subtests not being supported in older versions of Go, this package is
 only regularly tested against Go 1.7+. This package may work perfectly fine with
 Go 1.2+, but support for these older versions is not actively maintained.
 
+## Go 1.11 Modules
+
+At this time, this repository does not opt in to the experimental Go modules feature.  Users who took a dependency on v3.1.1+ (where we _did_ temporarily enable support for modules) will need to modify their import paths to no longer use the `github.com/gofrs/uuid/v3` Semantic Import Version path.  Please refer to [Issue #61](https://github.com/gofrs/uuid/issues/61) and [Issue #66](https://github.com/gofrs/uuid/issues/66) for more details.
+
 ## Usage
 
 Here is a quick overview of how to use this package. For more detailed
