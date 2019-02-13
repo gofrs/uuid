@@ -22,9 +22,9 @@
 package uuid
 
 import (
-	"crypto/md5"
+	"crypto/md5" // #nosec
 	"crypto/rand"
-	"crypto/sha1"
+	"crypto/sha1" // #nosec
 	"encoding/binary"
 	"fmt"
 	"hash"
@@ -165,6 +165,13 @@ func (g *Gen) NewV1() (UUID, error) {
 }
 
 // NewV2 returns a DCE Security UUID based on the POSIX UID/GID.
+//
+// Note: This UUID version has some limitations that generally make it
+// unsuitable for widespread use. Specifically, based on how internal fields are
+// used and structured, the generated UUID will only change once every 7
+// seconds. Most consumers of this package will want to use NewV4() instead.
+//
+// This package retains V2 support for compatibility reasons.
 func (g *Gen) NewV2(domain byte) (UUID, error) {
 	u, err := g.NewV1()
 	if err != nil {
@@ -188,7 +195,7 @@ func (g *Gen) NewV2(domain byte) (UUID, error) {
 
 // NewV3 returns a UUID based on the MD5 hash of the namespace UUID and name.
 func (g *Gen) NewV3(ns UUID, name string) UUID {
-	u := newFromHash(md5.New(), ns, name)
+	u := newFromHash(md5.New(), ns, name) // #nosec
 	u.SetVersion(V3)
 	u.SetVariant(VariantRFC4122)
 
@@ -209,7 +216,7 @@ func (g *Gen) NewV4() (UUID, error) {
 
 // NewV5 returns a UUID based on SHA-1 hash of the namespace UUID and name.
 func (g *Gen) NewV5(ns UUID, name string) UUID {
-	u := newFromHash(sha1.New(), ns, name)
+	u := newFromHash(sha1.New(), ns, name) // #nosec
 	u.SetVersion(V5)
 	u.SetVariant(VariantRFC4122)
 

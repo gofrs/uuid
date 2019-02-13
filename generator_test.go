@@ -173,7 +173,7 @@ func testNewV1MissingNetworkFaultyRand(t *testing.T) {
 
 func testNewV2(t *testing.T) {
 	t.Run("Basic", testNewV2Basic)
-	t.Run("DifferentAcrossCalls", testNewV2DifferentAcrossCalls)
+	t.Run("DifferentAcrossCalls", testGenNewV2DifferentAcrossCalls)
 	t.Run("FaultyRand", testNewV2FaultyRand)
 }
 
@@ -197,15 +197,27 @@ func testNewV2Basic(t *testing.T) {
 	}
 }
 
-func testNewV2DifferentAcrossCalls(t *testing.T) {
-	u1, err := NewV2(DomainOrg)
+func testGenNewV2DifferentAcrossCalls(t *testing.T) {
+	start := time.Now()
+	calls := time.Duration(0)
+
+	g := NewGen()
+	g.epochFunc = func() time.Time {
+		t := start.Add(calls * 8 * time.Second)
+		calls++
+		return t
+	}
+
+	u1, err := g.NewV2(DomainOrg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	u2, err := NewV2(DomainOrg)
+
+	u2, err := g.NewV2(DomainOrg)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if u1 == u2 {
 		t.Errorf("generated identical UUIDs across calls: %v", u1)
 	}
