@@ -35,6 +35,7 @@ func TestUUID(t *testing.T) {
 	t.Run("Variant", testUUIDVariant)
 	t.Run("SetVersion", testUUIDSetVersion)
 	t.Run("SetVariant", testUUIDSetVariant)
+	t.Run("Format", testUUIDFormat)
 }
 
 func testUUIDBytes(t *testing.T) {
@@ -110,6 +111,30 @@ func testUUIDSetVariant(t *testing.T) {
 		u.SetVariant(want)
 		if got := u.Variant(); got != want {
 			t.Errorf("%v.Variant() == %d after SetVariant(%d)", u, got, want)
+		}
+	}
+}
+
+func testUUIDFormat(t *testing.T) {
+	val := Must(FromString("12345678-90ab-cdef-1234-567890abcdef"))
+	tests := []struct {
+		u    UUID
+		f    string
+		want string
+	}{
+		{u: val, f: "%s", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%q", want: `"12345678-90ab-cdef-1234-567890abcdef"`},
+		{u: val, f: "%h", want: "1234567890abcdef1234567890abcdef"},
+		{u: val, f: "%H", want: "1234567890ABCDEF1234567890ABCDEF"},
+		{u: val, f: "%v", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%+v", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%#v", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%T", want: "uuid.UUID"},
+	}
+	for _, tt := range tests {
+		got := fmt.Sprintf(tt.f, tt.u)
+		if tt.want != got {
+			t.Errorf("Format(\"%s\") got %s, want %s", tt.f, got, tt.want)
 		}
 	}
 }

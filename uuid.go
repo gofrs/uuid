@@ -33,6 +33,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"strings"
 	"time"
 )
 
@@ -154,6 +156,47 @@ func (u UUID) String() string {
 	hex.Encode(buf[24:], u[10:])
 
 	return string(buf)
+}
+
+// Format implements fmt.Formatter for UUID values.  It accepts 'h' or 'H' as a format to output only
+// the hex digits of the UUID.  Any other format specifier returns the canonical RFC-4122 representation.
+func (u UUID) Format(f fmt.State, c rune) {
+	//
+	// TODO: dylan.bourque - 2019-02-15
+	// . should we implement %v? if so, what is "a Go-syntax representation" of a UUID when using %#v?
+	//
+	switch c {
+	case 'h', 'H':
+		s := hex.EncodeToString(u.Bytes())
+		if c == 'H' {
+			s = strings.Map(toCapitalHexDigits, s)
+		}
+		_, _ = io.WriteString(f, s)
+	case 'q':
+		_, _ = io.WriteString(f, `"`+u.String()+`"`)
+	default:
+		_, _ = io.WriteString(f, u.String())
+	}
+}
+
+func toCapitalHexDigits(ch rune) rune {
+	// convert a-f hex digits to A-F
+	switch ch {
+	case 'a':
+		return 'A'
+	case 'b':
+		return 'B'
+	case 'c':
+		return 'C'
+	case 'd':
+		return 'D'
+	case 'e':
+		return 'E'
+	case 'f':
+		return 'F'
+	default:
+		return ch
+	}
 }
 
 // SetVersion sets the version bits.
