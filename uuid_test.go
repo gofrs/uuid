@@ -124,12 +124,29 @@ func testUUIDFormat(t *testing.T) {
 	}{
 		{u: val, f: "%s", want: "12345678-90ab-cdef-1234-567890abcdef"},
 		{u: val, f: "%q", want: `"12345678-90ab-cdef-1234-567890abcdef"`},
-		{u: val, f: "%h", want: "1234567890abcdef1234567890abcdef"},
-		{u: val, f: "%H", want: "1234567890ABCDEF1234567890ABCDEF"},
+		{u: val, f: "%x", want: "1234567890abcdef1234567890abcdef"},
+		{u: val, f: "%X", want: "1234567890ABCDEF1234567890ABCDEF"},
 		{u: val, f: "%v", want: "12345678-90ab-cdef-1234-567890abcdef"},
 		{u: val, f: "%+v", want: "12345678-90ab-cdef-1234-567890abcdef"},
 		{u: val, f: "%#v", want: "12345678-90ab-cdef-1234-567890abcdef"},
 		{u: val, f: "%T", want: "uuid.UUID"},
+		{u: val, f: "%t", want: ""},
+		{u: val, f: "%b", want: ""},
+		{u: val, f: "%c", want: ""},
+		{u: val, f: "%d", want: ""},
+		{u: val, f: "%e", want: ""},
+		{u: val, f: "%E", want: ""},
+		{u: val, f: "%f", want: ""},
+		{u: val, f: "%F", want: ""},
+		{u: val, f: "%g", want: ""},
+		{u: val, f: "%G", want: ""},
+		{u: val, f: "%o", want: ""},
+		{u: val, f: "%U", want: ""},
+		// TODO: dylan-bourque - 2019-02-18
+		// uuid.Format() does not get called so it doesn't seem possible to control/verify the
+		// output of these verbs
+		//{u: val, f: "%p", want: ""},
+		//{u: val, f: "%#p", want: ""},
 	}
 	for _, tt := range tests {
 		got := fmt.Sprintf(tt.f, tt.u)

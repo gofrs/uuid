@@ -158,24 +158,30 @@ func (u UUID) String() string {
 	return string(buf)
 }
 
-// Format implements fmt.Formatter for UUID values.  It accepts 'h' or 'H' as a format to output only
-// the hex digits of the UUID.  Any other format specifier returns the canonical RFC-4122 representation.
+// Format implements fmt.Formatter for UUID values.
+//
+// The behavior is as follows:
+// The 'x' and 'X' verbs output only the hex digits of the UUID, using a-f for 'x' and A-F for 'X'.
+// The 'v', 's' and 'q' verbs returns the canonical RFC-4122 string representation.
+// All other verbs not handled directly by the fmt package (like %p) return an empty string.
 func (u UUID) Format(f fmt.State, c rune) {
-	//
-	// TODO: dylan.bourque - 2019-02-15
-	// . should we implement %v? if so, what is "a Go-syntax representation" of a UUID when using %#v?
-	//
 	switch c {
-	case 'h', 'H':
+	case 'x', 'X':
 		s := hex.EncodeToString(u.Bytes())
-		if c == 'H' {
+		if c == 'X' {
 			s = strings.Map(toCapitalHexDigits, s)
 		}
 		_, _ = io.WriteString(f, s)
+	case 'v', 's':
+		// TODO: dylan.bourque - 2019-02-18
+		// . should we implement %#v? if so, what is "a Go-syntax representation" of a UUID?
+		_, _ = io.WriteString(f, u.String())
 	case 'q':
 		_, _ = io.WriteString(f, `"`+u.String()+`"`)
 	default:
-		_, _ = io.WriteString(f, u.String())
+		// for all other format specifiers, generate no output
+		// . the fmt package doesn't provide any mechanism for indicating which format verbs we support,
+		//   so outputting nothing is at least deterministic
 	}
 }
 
