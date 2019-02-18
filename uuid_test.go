@@ -142,11 +142,6 @@ func testUUIDFormat(t *testing.T) {
 		{u: val, f: "%G", want: ""},
 		{u: val, f: "%o", want: ""},
 		{u: val, f: "%U", want: ""},
-		// TODO: dylan-bourque - 2019-02-18
-		// uuid.Format() does not get called so it doesn't seem possible to control/verify the
-		// output of these verbs
-		//{u: val, f: "%p", want: ""},
-		//{u: val, f: "%#p", want: ""},
 	}
 	for _, tt := range tests {
 		got := fmt.Sprintf(tt.f, tt.u)
