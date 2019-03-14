@@ -162,8 +162,11 @@ func (u UUID) String() string {
 //
 // The behavior is as follows:
 // The 'x' and 'X' verbs output only the hex digits of the UUID, using a-f for 'x' and A-F for 'X'.
-// The 'v', 's' and 'q' verbs returns the canonical RFC-4122 string representation.
-// All other verbs not handled directly by the fmt package (like %p) return an empty string.
+// The 'v', '+v', 's' and 'q' verbs return the canonical RFC-4122 string representation.
+// The 'S' verb returns the RFC-4122 format, but with capital hex digits.
+// The '#v' verb returns the "Go syntax" representation, which is a 16 byte array initializer.
+// All other verbs not handled directly by the fmt package (like '%p') are unsupported and will return
+// "%!verb(uuid.UUID=value)" as recommended by the fmt package.
 func (u UUID) Format(f fmt.State, c rune) {
 	switch c {
 	case 'x', 'X':
@@ -172,13 +175,25 @@ func (u UUID) Format(f fmt.State, c rune) {
 			s = strings.Map(toCapitalHexDigits, s)
 		}
 		_, _ = io.WriteString(f, s)
-	case 'v', 's':
-		// TODO: dylan.bourque - 2019-02-18
-		// . should we implement %#v? if so, what is "a Go-syntax representation" of a UUID?
-		_, _ = io.WriteString(f, u.String())
+	case 'v':
+		var s string
+		if f.Flag('#') {
+			s = fmt.Sprintf("%#v", [Size]byte(u))
+		} else {
+			s = u.String()
+		}
+		_, _ = io.WriteString(f, s)
+	case 's', 'S':
+		s := u.String()
+		if c == 'S' {
+			s = strings.Map(toCapitalHexDigits, s)
+		}
+		_, _ = io.WriteString(f, s)
 	case 'q':
 		_, _ = io.WriteString(f, `"`+u.String()+`"`)
 	default:
+		// invalid/unsupported format verb
+		fmt.Fprintf(f, "%%!%c(uuid.UUID=%s)", c, u.String())
 		// for all other format specifiers, generate no output
 		// . the fmt package doesn't provide any mechanism for indicating which format verbs we support,
 		//   so outputting nothing is at least deterministic
