@@ -194,9 +194,6 @@ func (u UUID) Format(f fmt.State, c rune) {
 	default:
 		// invalid/unsupported format verb
 		fmt.Fprintf(f, "%%!%c(uuid.UUID=%s)", c, u.String())
-		// for all other format specifiers, generate no output
-		// . the fmt package doesn't provide any mechanism for indicating which format verbs we support,
-		//   so outputting nothing is at least deterministic
 	}
 }
 
