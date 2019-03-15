@@ -147,7 +147,7 @@ func testUUIDFormat(t *testing.T) {
 	for _, tt := range tests {
 		got := fmt.Sprintf(tt.f, tt.u)
 		if tt.want != got {
-			t.Errorf("Format(\"%s\") got %s, want %s", tt.f, got, tt.want)
+			t.Errorf(`Format("%s") got %s, want %s`, tt.f, got, tt.want)
 		}
 	}
 }
