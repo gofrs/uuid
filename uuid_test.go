@@ -35,6 +35,7 @@ func TestUUID(t *testing.T) {
 	t.Run("Variant", testUUIDVariant)
 	t.Run("SetVersion", testUUIDSetVersion)
 	t.Run("SetVariant", testUUIDSetVariant)
+	t.Run("Format", testUUIDFormat)
 }
 
 func testUUIDBytes(t *testing.T) {
@@ -110,6 +111,43 @@ func testUUIDSetVariant(t *testing.T) {
 		u.SetVariant(want)
 		if got := u.Variant(); got != want {
 			t.Errorf("%v.Variant() == %d after SetVariant(%d)", u, got, want)
+		}
+	}
+}
+
+func testUUIDFormat(t *testing.T) {
+	val := Must(FromString("12345678-90ab-cdef-1234-567890abcdef"))
+	tests := []struct {
+		u    UUID
+		f    string
+		want string
+	}{
+		{u: val, f: "%s", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%S", want: "12345678-90AB-CDEF-1234-567890ABCDEF"},
+		{u: val, f: "%q", want: `"12345678-90ab-cdef-1234-567890abcdef"`},
+		{u: val, f: "%x", want: "1234567890abcdef1234567890abcdef"},
+		{u: val, f: "%X", want: "1234567890ABCDEF1234567890ABCDEF"},
+		{u: val, f: "%v", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%+v", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%#v", want: "[16]uint8{0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef}"},
+		{u: val, f: "%T", want: "uuid.UUID"},
+		{u: val, f: "%t", want: "%!t(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%b", want: "%!b(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%c", want: "%!c(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%d", want: "%!d(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%e", want: "%!e(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%E", want: "%!E(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%f", want: "%!f(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%F", want: "%!F(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%g", want: "%!g(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%G", want: "%!G(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%o", want: "%!o(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%U", want: "%!U(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+	}
+	for _, tt := range tests {
+		got := fmt.Sprintf(tt.f, tt.u)
+		if tt.want != got {
+			t.Errorf(`Format("%s") got %s, want %s`, tt.f, got, tt.want)
 		}
 	}
 }
