@@ -37,5 +37,15 @@ func byteSliceToString(b []byte) string {
 // return the underlying slice of bytes referenced by the string. This is
 // useful when wanting to avoid extra allocations.
 func stringToByteSlice(s string) []byte {
-	return *(*[]byte)(unsafe.Pointer(&s))
+	return *(*[]byte)(
+		unsafe.Pointer(
+			&struct {
+				string
+				Cap int
+			}{
+				string: s,
+				Cap:    len(s),
+			},
+		),
+	)
 }
