@@ -25,6 +25,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
+	"github.com/gofrs/uuid/internal/unsafe"
 )
 
 // FromBytes returns a UUID generated from the raw byte slice input.
@@ -49,7 +51,7 @@ func FromBytesOrNil(input []byte) UUID {
 // Input is expected in a form accepted by UnmarshalText.
 func FromString(input string) (UUID, error) {
 	u := UUID{}
-	err := u.UnmarshalText(stringToByteSlice(input))
+	err := u.UnmarshalText(unsafe.StringToByteSlice(input))
 	return u, err
 }
 
@@ -66,7 +68,7 @@ func FromStringOrNil(input string) UUID {
 // MarshalText implements the encoding.TextMarshaler interface.
 // The encoding is the same as returned by the String() method.
 func (u UUID) MarshalText() ([]byte, error) {
-	return stringToByteSlice(u.String()), nil
+	return unsafe.StringToByteSlice(u.String()), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
