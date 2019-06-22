@@ -87,7 +87,9 @@ func (t Timestamp) Time() (time.Time, error) {
 // Returns an error if the UUID is any version other than 1.
 func TimestampFromV1(u UUID) (Timestamp, error) {
 	if u.Version() != 1 {
-		err := fmt.Errorf("uuid: %s is version %d, not version 1", u, u.Version())
+		var u2 UUID
+		copy(u2[:], u[:])
+		err := fmt.Errorf("uuid: %s is version %d, not version 1", u2, u2.Version())
 		return 0, err
 	}
 	low := binary.BigEndian.Uint32(u[0:4])
@@ -143,7 +145,7 @@ func (u UUID) Bytes() []byte {
 // String returns a canonical RFC-4122 string representation of the UUID:
 // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
 func (u UUID) String() string {
-	buf := make([]byte, 36)
+	buf := [36]byte{}
 
 	hex.Encode(buf[0:8], u[0:4])
 	buf[8] = '-'
@@ -155,7 +157,7 @@ func (u UUID) String() string {
 	buf[23] = '-'
 	hex.Encode(buf[24:], u[10:])
 
-	return string(buf)
+	return string(buf[:])
 }
 
 // Format implements fmt.Formatter for UUID values.
