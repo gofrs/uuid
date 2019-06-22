@@ -24,9 +24,7 @@ package uuid
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
-	"strings"
 )
 
 // FromBytes returns a UUID generated from the raw byte slice input.
@@ -132,11 +130,11 @@ func (u *UUID) UnmarshalText(text []byte) error {
 // "6ba7b810-9dad-11d1-80b4-00c04fd430c8".
 func (u *UUID) decodeCanonical(t []byte) error {
 	if t[8] != '-' || t[13] != '-' || t[18] != '-' || t[23] != '-' {
-		b := strings.Builder{}
-		b.Grow(64 + len(t))
-		b.WriteString("uuid: incorrect UUID format in string ")
-		b.Write(t)
-		return errors.New(b.String())
+		// Copying t will prevent the Go compiler from allocating t on
+		// the heap if t would otherwise be on the stack.
+		tc := make([]byte, len(t))
+		copy(tc, t)
+		return fmt.Errorf("uuid: incorrect UUID format in string %q", tc)
 	}
 
 	src := t
