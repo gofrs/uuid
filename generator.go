@@ -26,7 +26,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/binary"
-	"errors"
+	"fmt"
 	"hash"
 	"io"
 	"net"
@@ -295,5 +295,5 @@ func defaultHWAddrFunc() (net.HardwareAddr, error) {
 			return iface.HardwareAddr, nil
 		}
 	}
-	return []byte{}, errors.New("uuid: no HW address found")
+	return []byte{}, fmt.Errorf("uuid: no HW address found")
 }
