@@ -19,7 +19,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package unsafe
+package uuid
 
 import (
 	"bytes"
@@ -28,7 +28,7 @@ import (
 
 func TestByteSliceToString(t *testing.T) {
 	want := "A"
-	actual := ByteSliceToString([]byte{0x41})
+	actual := byteSliceToString([]byte{0x41})
 
 	if want != actual {
 		t.Fatalf("strings did not match; want: %q, got: %q", want, actual)
@@ -38,7 +38,7 @@ func TestByteSliceToString(t *testing.T) {
 func TestStringToByteSlice(t *testing.T) {
 	s := "I'm a string"
 	want := []byte(s)
-	actual := StringToByteSlice(s)
+	actual := stringToByteSlice(s)
 
 	if !bytes.Equal(want, actual) {
 		t.Fatalf("slices did not match; want: %q, got: %q", want, actual)

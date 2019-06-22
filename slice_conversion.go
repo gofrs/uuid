@@ -19,31 +19,31 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package unsafe
+package uuid
 
 import (
 	"unsafe"
 )
 
-// ByteSliceToString uses pointer manipulation tricks to take a slice of bytes
+// byteSliceToString uses pointer manipulation tricks to take a slice of bytes
 // and convert it into a string. It should be used to avoid copying the slice.
 // It should also cause the compiler's escape analysis to keep the slice on
 // the stack if it would otherwise be stack allocated.
 //
 // NOTE: modifying the input slice will likely result in panics, undefined
 // behavior, or worse. Use it for read-only scenarios.
-func ByteSliceToString(b []byte) string {
+func byteSliceToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// StringToByteSlice uses pointer manipulation tricks to take a string and
+// stringToByteSlice uses pointer manipulation tricks to take a string and
 // return the underlying slice of bytes referenced by the string. This is
 // useful when wanting to avoid extra allocations.
 //
 // NOTE: modifying the returned slice will likely result in panics, undefined
 // behavior, or worse. Use this function only when a read-only view
 // of the string is required.
-func StringToByteSlice(s string) []byte {
+func stringToByteSlice(s string) []byte {
 	return *(*[]byte)(
 		unsafe.Pointer(
 			&struct {
