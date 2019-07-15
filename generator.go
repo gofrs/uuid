@@ -178,7 +178,7 @@ func (g *Gen) NewV2(domain byte) (UUID, error) {
 		binary.BigEndian.PutUint32(u[:], posixGID)
 	}
 
-	u[9] = domain
+	u[8] = domain
 
 	u.SetVersion(V2)
 	u.SetVariant(VariantRFC4122)
