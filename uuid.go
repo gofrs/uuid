@@ -248,3 +248,32 @@ func Must(u UUID, err error) UUID {
 	}
 	return u
 }
+
+// Compare two UUID
+// -1 = u1 is lexically before u2
+//  0 = u1 is equal to u2
+//	1 = u1 is lexically after u2
+func Compare(u1 UUID, u2 UUID) int {
+
+	lo1 := binary.LittleEndian.Uint64(u1[:8])
+	hi1 := binary.LittleEndian.Uint64(u1[8:])
+	lo2 := binary.LittleEndian.Uint64(u2[:8])
+	hi2 := binary.LittleEndian.Uint64(u2[8:])
+
+	// equal case
+	if hi1 == hi2 && lo1 == lo2 {
+		return 0
+	}
+
+	// less than case
+	if hi1 < hi2 || (hi1 == hi2 && lo1 < lo2) {
+		return -1
+	}
+
+	return 1
+}
+
+// Equal returns true if a UUID is equal to the output
+func (u UUID) Equal(v UUID) bool {
+	return Compare(u, v) == 0
+}
