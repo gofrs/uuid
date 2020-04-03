@@ -32,6 +32,7 @@ import (
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -100,14 +101,13 @@ type Generator interface {
 type Gen struct {
 	clockSequenceOnce sync.Once
 	hardwareAddrOnce  sync.Once
-	storageMutex      sync.Mutex
 
 	rand io.Reader
 
 	epochFunc     epochFunc
 	hwAddrFunc    HWAddrFunc
 	lastTime      uint64
-	clockSequence uint16
+	clockSequence uint32 // Uses only lower 16 bits.
 	hardwareAddr  [6]byte
 }
 
@@ -220,28 +220,46 @@ func (g *Gen) NewV5(ns UUID, name string) UUID {
 func (g *Gen) getClockSequence() (uint64, uint16, error) {
 	var err error
 	g.clockSequenceOnce.Do(func() {
-		buf := make([]byte, 2)
+		buf := make([]byte, 4)
 		if _, err = io.ReadFull(g.rand, buf); err != nil {
 			return
 		}
-		g.clockSequence = binary.BigEndian.Uint16(buf)
+		g.clockSequence = binary.BigEndian.Uint32(buf)
 	})
 	if err != nil {
 		return 0, 0, err
 	}
 
-	g.storageMutex.Lock()
-	defer g.storageMutex.Unlock()
-
+retry:
 	timeNow := g.getEpoch()
-	// Clock didn't change since last UUID generation.
-	// Should increase clock sequence.
-	if timeNow <= g.lastTime {
-		g.clockSequence++
-	}
-	g.lastTime = timeNow
+	timeHi := atomic.LoadUint64(&g.lastTime)
 
-	return timeNow, g.clockSequence, nil
+	// Clock didn't progress since last UUID generation - increase clock sequence.
+	if timeNow <= timeHi {
+		return timeNow, uint16(atomic.AddUint32(&g.clockSequence, 1)), nil
+	}
+
+	// In the rare case another contending thread updates lastTime and the
+	// CAS fails, we retry - to pick up the changes and current time,
+	// at which point we'll end up on a clockSequence increment.
+	lastSeq := atomic.LoadUint32(&g.clockSequence)
+	if atomic.CompareAndSwapUint64(&g.lastTime, timeHi, timeNow) {
+		// At extreme contention lastTime can get updated and another NewV1 call processed
+		// (resulting in a sequence increment) before we load the sequence, causing this
+		// goroutine to load the incremented clockSequence instead and therefore generate
+		// a duplicate.
+		//
+		// If the comparison fails, we will fall through to the retry, just to be safe.
+		// In that case while we were the first to apply the time progression, we will
+		// end up with a (incorrect, but safe) clockSequence increase.
+		// In a realistic scenario (i.e. not generating millions of UUIDs per sec) this
+		// is an extremely improbable occurrence.
+		if atomic.LoadUint32(&g.clockSequence) == lastSeq {
+			return timeNow, uint16(lastSeq), nil
+		}
+	}
+
+	goto retry
 }
 
 // Returns the hardware address.
