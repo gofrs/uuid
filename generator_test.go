@@ -26,6 +26,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net"
+	"sync"
 	"testing"
 	"time"
 )
@@ -45,6 +46,7 @@ func testNewV1(t *testing.T) {
 	t.Run("FaultyRand", testNewV1FaultyRand)
 	t.Run("MissingNetwork", testNewV1MissingNetwork)
 	t.Run("MissingNetworkFaultyRand", testNewV1MissingNetworkFaultyRand)
+	t.Run("Race", testNewV1Race)
 }
 
 func TestNewGenWithHWAF(t *testing.T) {
@@ -168,6 +170,58 @@ func testNewV1MissingNetworkFaultyRand(t *testing.T) {
 	u, err := g.NewV1()
 	if err == nil {
 		t.Errorf("did not error on faulty reader and missing network, got %v", u)
+	}
+}
+
+func testNewV1Race(t *testing.T) {
+	const (
+		// numG goroutines generating numIDsPerG UUIDs each.
+		numG       = 1024
+		numIDsPerG = 256
+	)
+
+	var (
+		// We use a shared array to hold the results - we'll be concurrently writing
+		// to it without additional synchronization, but each goroutine within its own shard.
+		// Further down we'll iterate over the results to check for duplicated UUIDs.
+		//
+		// This is done to avoid storing the UUIDs in a map directly (to memoize and check
+		// duplicates) as that would require us to synchronize access with a mutex,
+		// skewing contention from the generator into the benchmark itself. It also speeds
+		// up the benchmark itself considerably.
+		ids [numG * numIDsPerG]UUID
+
+		wgOuter sync.WaitGroup
+		wgInner sync.WaitGroup
+	)
+
+	wgOuter.Add(numG)
+	wgInner.Add(numG)
+	for g := 0; g < numG; g++ {
+		go func(g int) {
+			// Wait until all goroutines are initialized before we unleash them.
+			wgInner.Done()
+			wgInner.Wait()
+			for i := 0; i < numIDsPerG; i++ {
+				u, err := NewV1()
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				ids[g*numIDsPerG+i] = u
+			}
+			wgOuter.Done()
+		}(g)
+	}
+	wgOuter.Wait()
+
+	memo := make(map[UUID]struct{})
+	for _, u := range ids {
+		if _, exists := memo[u]; exists {
+			t.Errorf("generated identical UUIDs during race: %v", u)
+		}
+
+		memo[u] = struct{}{}
 	}
 }
 
