@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Build ${{ matrix.go }}
+    - name: Build
       uses: actions/setup-go@v2
       with:
         go-version: '1.15',
