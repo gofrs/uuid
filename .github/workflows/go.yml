@@ -33,5 +33,5 @@ jobs:
     - name: Test
       run: go test -v ./...
 
-    - Name: Coverage
+    - name: Coverage
       run: bash <(curl -s https://codecov.io/bash)
