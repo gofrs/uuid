@@ -49,7 +49,7 @@ func FromBytesOrNil(input []byte) UUID {
 // Input is expected in a form accepted by UnmarshalText.
 func FromString(input string) (UUID, error) {
 	u := UUID{}
-	err := u.UnmarshalText([]byte(input))
+	err := u.UnmarshalText(stringToByteSlice(input))
 	return u, err
 }
 
@@ -66,7 +66,7 @@ func FromStringOrNil(input string) UUID {
 // MarshalText implements the encoding.TextMarshaler interface.
 // The encoding is the same as returned by the String() method.
 func (u UUID) MarshalText() ([]byte, error) {
-	return []byte(u.String()), nil
+	return stringToByteSlice(u.String()), nil
 }
 
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
@@ -114,7 +114,15 @@ func (u *UUID) UnmarshalText(text []byte) error {
 	case 41, 45:
 		return u.decodeURN(text)
 	default:
-		return fmt.Errorf("uuid: incorrect UUID length %d in string %q", len(text), text)
+		// Copying text will prevent the Go compiler from allocating text on
+		// the heap if text would otherwise be on the stack. This can
+		// significantly speed up parsing and using UUIDs that are
+		// well-formed.
+		// On the other hand, if we have an error, returning the error string
+		// may be slightly slower.
+		tc := make([]byte, len(text))
+		copy(tc, text)
+		return fmt.Errorf("uuid: incorrect UUID length %d in string %q", len(tc), tc)
 	}
 }
 
@@ -122,7 +130,11 @@ func (u *UUID) UnmarshalText(text []byte) error {
 // "6ba7b810-9dad-11d1-80b4-00c04fd430c8".
 func (u *UUID) decodeCanonical(t []byte) error {
 	if t[8] != '-' || t[13] != '-' || t[18] != '-' || t[23] != '-' {
-		return fmt.Errorf("uuid: incorrect UUID format in string %q", t)
+		// Copying t will prevent the Go compiler from allocating t on
+		// the heap if t would otherwise be on the stack.
+		tc := make([]byte, len(t))
+		copy(tc, t)
+		return fmt.Errorf("uuid: incorrect UUID format in string %q", tc)
 	}
 
 	src := t
@@ -160,7 +172,11 @@ func (u *UUID) decodeBraced(t []byte) error {
 	l := len(t)
 
 	if t[0] != '{' || t[l-1] != '}' {
-		return fmt.Errorf("uuid: incorrect UUID format in string %q", t)
+		// Copying t will prevent the Go compiler from allocating t on
+		// the heap if t would otherwise be on the stack.
+		tc := make([]byte, len(t))
+		copy(tc, t)
+		return fmt.Errorf("uuid: incorrect UUID format in string %q", tc)
 	}
 
 	return u.decodePlain(t[1 : l-1])
@@ -175,7 +191,11 @@ func (u *UUID) decodeURN(t []byte) error {
 	urnUUIDPrefix := t[:9]
 
 	if !bytes.Equal(urnUUIDPrefix, urnPrefix) {
-		return fmt.Errorf("uuid: incorrect UUID format in string %q", t)
+		// Copying t will prevent the Go compiler from allocating t on
+		// the heap if t would otherwise be on the stack.
+		tc := make([]byte, len(t))
+		copy(tc, t)
+		return fmt.Errorf("uuid: incorrect UUID format in string %q", tc)
 	}
 
 	return u.decodePlain(t[9:total])
@@ -191,7 +211,11 @@ func (u *UUID) decodePlain(t []byte) error {
 	case 36:
 		return u.decodeCanonical(t)
 	default:
-		return fmt.Errorf("uuid: incorrect UUID length %d in string %q", len(t), t)
+		// Copying t will prevent the Go compiler from allocating t on
+		// the heap if t would otherwise be on the stack.
+		tc := make([]byte, len(t))
+		copy(tc, t)
+		return fmt.Errorf("uuid: incorrect UUID length %d in string %q", len(tc), tc)
 	}
 }
 
