@@ -52,22 +52,20 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
       
-    - name: Set GOPATH
-      # temporary fix
-      # see https://github.com/actions/setup-go/issues/14
-      run: |
-        echo "##[set-env name=GOPATH;]$(dirname $GITHUB_WORKSPACE)"
-        echo "##[add-path]$(dirname $GITHUB_WORKSPACE)/bin"
-      shell: bash
-      
     - name: Get Coverage        
-      run:  go get golang.org/x/tools/cmd/cover
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        go get golang.org/x/tools/cmd/cover
 
     - name: Build
-      run: go build -v ./...
+      run:  |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        go build -v ./...
 
     - name: Test
-      run: go test ./... -race -coverprofile=coverage.txt -covermode=atomic
+      run:  |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        go test ./... -race -coverprofile=coverage.txt -covermode=atomic
 
     - name: Coverage
       run: bash <(curl -s https://codecov.io/bash)
