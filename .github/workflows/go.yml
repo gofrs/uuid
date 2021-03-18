@@ -12,7 +12,7 @@ jobs:
     name: Build + Test Stable
     runs-on: ubuntu-latest
     env:
-      GO111MODULE=auto
+      GO111MODULE: auto
     steps:
 
     - name: Build
