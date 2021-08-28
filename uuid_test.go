@@ -219,3 +219,28 @@ func TestTimestampFromV1(t *testing.T) {
 		}
 	}
 }
+
+func TestTimestampFromV6(t *testing.T) {
+	tests := []struct {
+		u       UUID
+		want    Timestamp
+		wanterr bool
+	}{
+		{u: Must(NewV1()), wanterr: true},
+		{u: Must(FromString("00000000-0000-6000-0000-000000000000")), want: 0},
+		{u: Must(FromString("1ec06cff-e9b1-621c-8627-ba3fd7e551c9")), want: 138493178941215260},
+		{u: Must(FromString("ffffffff-ffff-6fff-ffff-ffffffffffff")), want: Timestamp(1<<60 - 1)},
+	}
+
+	for _, tt := range tests {
+		got, err := TimestampFromV6(tt.u)
+
+		switch {
+		case tt.wanterr && err == nil:
+			t.Errorf("TimestampFromV6(%v) want error, got %v", tt.u, got)
+
+		case tt.want != got:
+			t.Errorf("TimestampFromV6(%v) got %v, want %v", tt.u, got, tt.want)
+		}
+	}
+}
