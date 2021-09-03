@@ -38,6 +38,8 @@ jobs:
   build-legacy:
     name: Build + Test Previous Stable
     runs-on: ubuntu-latest
+    env:
+      GO111MODULE: auto
     strategy:
       matrix:
         go: ['1.16.x', '1.15.x', '1.14.x']
