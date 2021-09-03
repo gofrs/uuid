@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: ['1.16.x', 1.15.x', '1.14.x']
+        go: ['1.16.x', '1.15.x', '1.14.x']
     steps:
 
     - name: Build ${{ matrix.go }}
