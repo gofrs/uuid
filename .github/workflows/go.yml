@@ -33,7 +33,8 @@ jobs:
       run: go test ./... -race -coverprofile=coverage.txt -covermode=atomic
 
     - name: Coverage
-      run: bash <(curl -s https://codecov.io/bash)
+      uses: codecov/codecov-action@v2
+      fail_ci_if_error: true
 
   build-legacy:
     name: Build + Test Previous Stable
