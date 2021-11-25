@@ -29,7 +29,7 @@ import (
 )
 
 func TestUUID(t *testing.T) {
-	t.Run("IsZero", testUUIDIsZero)
+	t.Run("IsNil", testUUIDIsNil)
 	t.Run("Bytes", testUUIDBytes)
 	t.Run("String", testUUIDString)
 	t.Run("Version", testUUIDVersion)
@@ -39,12 +39,12 @@ func TestUUID(t *testing.T) {
 	t.Run("Format", testUUIDFormat)
 }
 
-func testUUIDIsZero(t *testing.T) {
+func testUUIDIsNil(t *testing.T) {
 	u := UUID{}
-	got := u.IsZero()
+	got := u.IsNil()
 	want := true
 	if got != want {
-		t.Errorf("%v.IsZero() = %t, want %t", u, got, want)
+		t.Errorf("%v.IsNil() = %t, want %t", u, got, want)
 	}
 }
 

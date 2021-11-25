@@ -151,8 +151,8 @@ var (
 	NamespaceX500 = Must(FromString("6ba7b814-9dad-11d1-80b4-00c04fd430c8"))
 )
 
-// IsZero returns if the UUID is equal to the nil UUID
-func (u UUID) IsZero() bool {
+// IsNil returns if the UUID is equal to the nil UUID
+func (u UUID) IsNil() bool {
 	return u == Nil
 }
 
