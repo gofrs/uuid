@@ -29,6 +29,7 @@ import (
 )
 
 func TestUUID(t *testing.T) {
+	t.Run("IsNil", testUUIDIsNil)
 	t.Run("Bytes", testUUIDBytes)
 	t.Run("String", testUUIDString)
 	t.Run("Version", testUUIDVersion)
@@ -36,6 +37,15 @@ func TestUUID(t *testing.T) {
 	t.Run("SetVersion", testUUIDSetVersion)
 	t.Run("SetVariant", testUUIDSetVariant)
 	t.Run("Format", testUUIDFormat)
+}
+
+func testUUIDIsNil(t *testing.T) {
+	u := UUID{}
+	got := u.IsNil()
+	want := true
+	if got != want {
+		t.Errorf("%v.IsNil() = %t, want %t", u, got, want)
+	}
 }
 
 func testUUIDBytes(t *testing.T) {
