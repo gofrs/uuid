@@ -22,7 +22,7 @@ This package also supports experimental Universally Unique Identifier implementa
 * Version 7, a k-sortable id based on timestamp with variable precision  (draft-peabody-dispatch-new-uuid-format, RFC-4122)
 
 The v6 and v7 IDs are **not** considered a part of the stable API, and may be subject to behavior or API changes as part of minor releases
-to this package. They will be updated as the draft RFC changes, and will become stable if and when the draft RFC is adopted into RFC-4122
+to this package. They will be updated as the draft RFC changes, and will become stable if and when the draft RFC is accepted.
 
 ## Project History
 
