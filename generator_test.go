@@ -107,13 +107,11 @@ func testNewV1DifferentAcrossCalls(t *testing.T) {
 }
 
 func testNewV1StaleEpoch(t *testing.T) {
-	g := &Gen{
-		epochFunc: func() time.Time {
+	g := NewGen(
+		WithEpochFunc(func() time.Time {
 			return time.Unix(0, 0)
-		},
-		hwAddrFunc: defaultHWAddrFunc,
-		rand:       rand.Reader,
-	}
+		}),
+	)
 	u1, err := g.NewV1()
 	if err != nil {
 		t.Fatal(err)
@@ -128,13 +126,11 @@ func testNewV1StaleEpoch(t *testing.T) {
 }
 
 func testNewV1FaultyRand(t *testing.T) {
-	g := &Gen{
-		epochFunc:  time.Now,
-		hwAddrFunc: defaultHWAddrFunc,
-		rand: &faultyReader{
+	g := NewGen(
+		WithRandomReader(&faultyReader{
 			readToFail: 0, // fail immediately
-		},
-	}
+		}),
+	)
 	u, err := g.NewV1()
 	if err == nil {
 		t.Fatalf("got %v, want error", u)
@@ -145,13 +141,11 @@ func testNewV1FaultyRand(t *testing.T) {
 }
 
 func testNewV1MissingNetwork(t *testing.T) {
-	g := &Gen{
-		epochFunc: time.Now,
-		hwAddrFunc: func() (net.HardwareAddr, error) {
+	g := NewGen(
+		WithHWAddrFunc(func() (net.HardwareAddr, error) {
 			return []byte{}, fmt.Errorf("uuid: no hw address found")
-		},
-		rand: rand.Reader,
-	}
+		}),
+	)
 	_, err := g.NewV1()
 	if err != nil {
 		t.Errorf("did not handle missing network interfaces: %v", err)
@@ -159,15 +153,14 @@ func testNewV1MissingNetwork(t *testing.T) {
 }
 
 func testNewV1MissingNetworkFaultyRand(t *testing.T) {
-	g := &Gen{
-		epochFunc: time.Now,
-		hwAddrFunc: func() (net.HardwareAddr, error) {
+	g := NewGen(
+		WithHWAddrFunc(func() (net.HardwareAddr, error) {
 			return []byte{}, fmt.Errorf("uuid: no hw address found")
-		},
-		rand: &faultyReader{
+		}),
+		WithRandomReader(&faultyReader{
 			readToFail: 1,
-		},
-	}
+		}),
+	)
 	u, err := g.NewV1()
 	if err == nil {
 		t.Errorf("did not error on faulty reader and missing network, got %v", u)
@@ -252,13 +245,11 @@ func testNewV4DifferentAcrossCalls(t *testing.T) {
 }
 
 func testNewV4FaultyRand(t *testing.T) {
-	g := &Gen{
-		epochFunc:  time.Now,
-		hwAddrFunc: defaultHWAddrFunc,
-		rand: &faultyReader{
+	g := NewGen(
+		WithRandomReader(&faultyReader{
 			readToFail: 0, // fail immediately
-		},
-	}
+		}),
+	)
 	u, err := g.NewV4()
 	if err == nil {
 		t.Errorf("got %v, nil error", u)
@@ -266,13 +257,14 @@ func testNewV4FaultyRand(t *testing.T) {
 }
 
 func testNewV4ShortRandomRead(t *testing.T) {
-	g := &Gen{
-		epochFunc: time.Now,
-		hwAddrFunc: func() (net.HardwareAddr, error) {
+	g := NewGen(
+		WithHWAddrFunc(func() (net.HardwareAddr, error) {
 			return []byte{}, fmt.Errorf("uuid: no hw address found")
-		},
-		rand: bytes.NewReader([]byte{42}),
-	}
+		}),
+		WithRandomReader(&faultyReader{
+			readToFail: 0, // fail immediately
+		}),
+	)
 	u, err := g.NewV4()
 	if err == nil {
 		t.Errorf("got %v, nil error", u)
@@ -359,13 +351,11 @@ func testNewV6DifferentAcrossCalls(t *testing.T) {
 }
 
 func testNewV6StaleEpoch(t *testing.T) {
-	g := &Gen{
-		epochFunc: func() time.Time {
+	g := NewGen(
+		WithEpochFunc(func() time.Time {
 			return time.Unix(0, 0)
-		},
-		hwAddrFunc: defaultHWAddrFunc,
-		rand:       rand.Reader,
-	}
+		}),
+	)
 	u1, err := g.NewV6()
 	if err != nil {
 		t.Fatal(err)
@@ -381,13 +371,11 @@ func testNewV6StaleEpoch(t *testing.T) {
 
 func testNewV6FaultyRand(t *testing.T) {
 	t.Run("randomData", func(t *testing.T) {
-		g := &Gen{
-			epochFunc:  time.Now,
-			hwAddrFunc: defaultHWAddrFunc,
-			rand: &faultyReader{
+		g := NewGen(
+			WithRandomReader(&faultyReader{
 				readToFail: 0, // fail immediately
-			},
-		}
+			}),
+		)
 		u, err := g.NewV6()
 		if err == nil {
 			t.Fatalf("got %v, want error", u)
@@ -398,13 +386,11 @@ func testNewV6FaultyRand(t *testing.T) {
 	})
 
 	t.Run("clockSequence", func(t *testing.T) {
-		g := &Gen{
-			epochFunc:  time.Now,
-			hwAddrFunc: defaultHWAddrFunc,
-			rand: &faultyReader{
+		g := NewGen(
+			WithRandomReader(&faultyReader{
 				readToFail: 1, // fail immediately
-			},
-		}
+			}),
+		)
 		u, err := g.NewV6()
 		if err == nil {
 			t.Fatalf("got %v, want error", u)
@@ -416,10 +402,9 @@ func testNewV6FaultyRand(t *testing.T) {
 }
 
 func testNewV6ShortRandomRead(t *testing.T) {
-	g := &Gen{
-		epochFunc: time.Now,
-		rand:      bytes.NewReader([]byte{42}),
-	}
+	g := NewGen(
+		WithRandomReader(bytes.NewReader([]byte{42})),
+	)
 	u, err := g.NewV6()
 	if err == nil {
 		t.Errorf("got %v, nil error", u)
@@ -554,12 +539,11 @@ func makeTestNewV7DifferentAcrossCalls(p Precision) func(t *testing.T) {
 
 func makeTestNewV7StaleEpoch(p Precision) func(t *testing.T) {
 	return func(t *testing.T) {
-		g := &Gen{
-			epochFunc: func() time.Time {
+		g := NewGen(
+			WithEpochFunc(func() time.Time {
 				return time.Unix(0, 0)
-			},
-			rand: rand.Reader,
-		}
+			}),
+		)
 		u1, err := g.NewV7(p)
 		if err != nil {
 			t.Fatal(err)
@@ -576,12 +560,11 @@ func makeTestNewV7StaleEpoch(p Precision) func(t *testing.T) {
 
 func makeTestNewV7FaultyRand(p Precision) func(t *testing.T) {
 	return func(t *testing.T) {
-		g := &Gen{
-			epochFunc: time.Now,
-			rand: &faultyReader{
+		g := NewGen(
+			WithRandomReader(&faultyReader{
 				readToFail: 0, // fail immediately
-			},
-		}
+			}),
+		)
 		u, err := g.NewV7(p)
 		if err == nil {
 			t.Errorf("got %v, nil error", u)
@@ -591,10 +574,9 @@ func makeTestNewV7FaultyRand(p Precision) func(t *testing.T) {
 
 func makeTestNewV7ShortRandomRead(p Precision) func(t *testing.T) {
 	return func(t *testing.T) {
-		g := &Gen{
-			epochFunc: time.Now,
-			rand:      bytes.NewReader([]byte{42}),
-		}
+		g := NewGen(
+			WithRandomReader(bytes.NewReader([]byte{42})),
+		)
 		u, err := g.NewV7(p)
 		if err == nil {
 			t.Errorf("got %v, nil error", u)

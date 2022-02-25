@@ -39,7 +39,7 @@ import (
 // UUID epoch (October 15, 1582) and Unix epoch (January 1, 1970).
 const epochStart = 122192928000000000
 
-type epochFunc func() time.Time
+type EpochFunc func() time.Time
 
 // HWAddrFunc is the function type used to provide hardware (MAC) addresses.
 type HWAddrFunc func() (net.HardwareAddr, error)
@@ -126,7 +126,7 @@ type Gen struct {
 
 	rand io.Reader
 
-	epochFunc     epochFunc
+	epochFunc     EpochFunc
 	hwAddrFunc    HWAddrFunc
 	lastTime      uint64
 	clockSequence uint16
@@ -137,13 +137,43 @@ type Gen struct {
 	v7ClockSequence uint16
 }
 
+type GenOption func(*Gen)
+
 // interface check -- build will fail if *Gen doesn't satisfy Generator
 var _ Generator = (*Gen)(nil)
 
-// NewGen returns a new instance of Gen with some default values set. Most
-// people should use this.
-func NewGen() *Gen {
-	return NewGenWithHWAF(defaultHWAddrFunc)
+// NewGen returns a new instance of Gen with default values if no options are
+// passed.
+func NewGen(opts ...GenOption) *Gen {
+	gen := &Gen{
+		epochFunc:  time.Now,
+		hwAddrFunc: defaultHWAddrFunc,
+		rand:       rand.Reader,
+	}
+
+	for _, opt := range opts {
+		opt(gen)
+	}
+
+	return gen
+}
+
+func WithHWAddrFunc(hwaf HWAddrFunc) GenOption {
+	return func(gen *Gen) {
+		gen.hwAddrFunc = hwaf
+	}
+}
+
+func WithEpochFunc(epochf EpochFunc) GenOption {
+	return func(gen *Gen) {
+		gen.epochFunc = epochf
+	}
+}
+
+func WithRandomReader(reader io.Reader) GenOption {
+	return func(gen *Gen) {
+		gen.rand = reader
+	}
 }
 
 // NewGenWithHWAF builds a new UUID generator with the HWAddrFunc provided. Most
@@ -158,11 +188,7 @@ func NewGen() *Gen {
 // MAC address being used, you'll need to create a new generator using this
 // function.
 func NewGenWithHWAF(hwaf HWAddrFunc) *Gen {
-	return &Gen{
-		epochFunc:  time.Now,
-		hwAddrFunc: hwaf,
-		rand:       rand.Reader,
-	}
+	return NewGen(WithHWAddrFunc(hwaf))
 }
 
 // NewV1 returns a UUID based on the current timestamp and MAC address.
