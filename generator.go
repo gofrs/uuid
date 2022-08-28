@@ -47,6 +47,11 @@ type HWAddrFunc func() (net.HardwareAddr, error)
 // DefaultGenerator is the default UUID Generator used by this package.
 var DefaultGenerator Generator = NewGen()
 
+// New returns a randomly generated UUID.
+func New() UUID {
+	return Must(DefaultGenerator.NewV4())
+}
+
 // NewV1 returns a UUID based on the current timestamp and MAC address.
 func NewV1() (UUID, error) {
 	return DefaultGenerator.NewV1()

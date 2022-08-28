@@ -33,6 +33,7 @@ import (
 )
 
 func TestGenerator(t *testing.T) {
+	t.Run("New", testNew)
 	t.Run("NewV1", testNewV1)
 	t.Run("NewV3", testNewV3)
 	t.Run("NewV4", testNewV4)
@@ -217,6 +218,11 @@ func testNewV3DifferentNamespaces(t *testing.T) {
 	}
 }
 
+func testNew(t *testing.T) {
+	t.Run("Basic", testNewBasic)
+	t.Run("DifferentAcrossCalls", testNewDifferentAcrossCalls)
+}
+
 func testNewV4(t *testing.T) {
 	t.Run("Basic", testNewV4Basic)
 	t.Run("DifferentAcrossCalls", testNewV4DifferentAcrossCalls)
@@ -237,6 +243,16 @@ func testNewV4Basic(t *testing.T) {
 	}
 }
 
+func testNewBasic(t *testing.T) {
+	u := New()
+	if got, want := u.Version(), V4; got != want {
+		t.Errorf("got version %d, want %d", got, want)
+	}
+	if got, want := u.Variant(), VariantRFC4122; got != want {
+		t.Errorf("got variant %d, want %d", got, want)
+	}
+}
+
 func testNewV4DifferentAcrossCalls(t *testing.T) {
 	u1, err := NewV4()
 	if err != nil {
@@ -246,6 +262,14 @@ func testNewV4DifferentAcrossCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if u1 == u2 {
+		t.Errorf("generated identical UUIDs across calls: %v", u1)
+	}
+}
+
+func testNewDifferentAcrossCalls(t *testing.T) {
+	u1 := New()
+	u2 := New()
 	if u1 == u2 {
 		t.Errorf("generated identical UUIDs across calls: %v", u1)
 	}
