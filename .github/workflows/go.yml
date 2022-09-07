@@ -18,7 +18,7 @@ jobs:
     - name: Build
       uses: actions/setup-go@v2
       with:
-        go-version: '1.17.x'
+        go-version: '1.18.x'
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
@@ -45,7 +45,7 @@ jobs:
     - name: Build
       uses: actions/setup-go@v2
       with:
-        go-version: '1.16.x'
+        go-version: '1.17.x'
 
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
