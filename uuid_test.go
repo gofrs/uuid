@@ -29,12 +29,23 @@ import (
 )
 
 func TestUUID(t *testing.T) {
+	t.Run("IsNil", testUUIDIsNil)
 	t.Run("Bytes", testUUIDBytes)
 	t.Run("String", testUUIDString)
 	t.Run("Version", testUUIDVersion)
 	t.Run("Variant", testUUIDVariant)
 	t.Run("SetVersion", testUUIDSetVersion)
 	t.Run("SetVariant", testUUIDSetVariant)
+	t.Run("Format", testUUIDFormat)
+}
+
+func testUUIDIsNil(t *testing.T) {
+	u := UUID{}
+	got := u.IsNil()
+	want := true
+	if got != want {
+		t.Errorf("%v.IsNil() = %t, want %t", u, got, want)
+	}
 }
 
 func testUUIDBytes(t *testing.T) {
@@ -114,6 +125,43 @@ func testUUIDSetVariant(t *testing.T) {
 	}
 }
 
+func testUUIDFormat(t *testing.T) {
+	val := Must(FromString("12345678-90ab-cdef-1234-567890abcdef"))
+	tests := []struct {
+		u    UUID
+		f    string
+		want string
+	}{
+		{u: val, f: "%s", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%S", want: "12345678-90AB-CDEF-1234-567890ABCDEF"},
+		{u: val, f: "%q", want: `"12345678-90ab-cdef-1234-567890abcdef"`},
+		{u: val, f: "%x", want: "1234567890abcdef1234567890abcdef"},
+		{u: val, f: "%X", want: "1234567890ABCDEF1234567890ABCDEF"},
+		{u: val, f: "%v", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%+v", want: "12345678-90ab-cdef-1234-567890abcdef"},
+		{u: val, f: "%#v", want: "[16]uint8{0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef, 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef}"},
+		{u: val, f: "%T", want: "uuid.UUID"},
+		{u: val, f: "%t", want: "%!t(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%b", want: "%!b(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%c", want: "%!c(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%d", want: "%!d(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%e", want: "%!e(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%E", want: "%!E(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%f", want: "%!f(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%F", want: "%!F(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%g", want: "%!g(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%G", want: "%!G(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%o", want: "%!o(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+		{u: val, f: "%U", want: "%!U(uuid.UUID=12345678-90ab-cdef-1234-567890abcdef)"},
+	}
+	for _, tt := range tests {
+		got := fmt.Sprintf(tt.f, tt.u)
+		if tt.want != got {
+			t.Errorf(`Format("%s") got %s, want %s`, tt.f, got, tt.want)
+		}
+	}
+}
+
 func TestMust(t *testing.T) {
 	sentinel := fmt.Errorf("uuid: sentinel error")
 	defer func() {
@@ -178,6 +226,31 @@ func TestTimestampFromV1(t *testing.T) {
 			t.Errorf("TimestampFromV1(%v) want error, got %v", tt.u, got)
 		} else if tt.want != got {
 			t.Errorf("TimestampFromV1(%v) got %v, want %v", tt.u, got, tt.want)
+		}
+	}
+}
+
+func TestTimestampFromV6(t *testing.T) {
+	tests := []struct {
+		u       UUID
+		want    Timestamp
+		wanterr bool
+	}{
+		{u: Must(NewV1()), wanterr: true},
+		{u: Must(FromString("00000000-0000-6000-0000-000000000000")), want: 0},
+		{u: Must(FromString("1ec06cff-e9b1-621c-8627-ba3fd7e551c9")), want: 138493178941215260},
+		{u: Must(FromString("ffffffff-ffff-6fff-ffff-ffffffffffff")), want: Timestamp(1<<60 - 1)},
+	}
+
+	for _, tt := range tests {
+		got, err := TimestampFromV6(tt.u)
+
+		switch {
+		case tt.wanterr && err == nil:
+			t.Errorf("TimestampFromV6(%v) want error, got %v", tt.u, got)
+
+		case tt.want != got:
+			t.Errorf("TimestampFromV6(%v) got %v, want %v", tt.u, got, tt.want)
 		}
 	}
 }
