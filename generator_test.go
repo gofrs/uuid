@@ -24,6 +24,8 @@ package uuid
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -579,6 +581,161 @@ func makeTestNewV7KSortable() func(t *testing.T) {
 				t.Errorf("uuids[%d] (%s) not less than uuids[%d] (%s)", i-1, p, i, n)
 			}
 		}
+	}
+}
+
+func testNewV7ClockSequence(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
+	g := NewGen()
+
+	// hack to try and reduce race conditions based on when the test starts
+	nsec := time.Now().Nanosecond()
+	sleepDur := int(time.Second) - nsec
+	time.Sleep(time.Duration(sleepDur))
+
+	u1, err := g.NewV7()
+	if err != nil {
+		t.Fatalf("failed to generate V7 UUID #1: %v", err)
+	}
+
+	u2, err := g.NewV7()
+	if err != nil {
+		t.Fatalf("failed to generate V7 UUID #2: %v", err)
+	}
+
+	time.Sleep(time.Millisecond)
+
+	u3, err := g.NewV7()
+	if err != nil {
+		t.Fatalf("failed to generate V7 UUID #3: %v", err)
+	}
+
+	time.Sleep(time.Second)
+
+	u4, err := g.NewV7()
+	if err != nil {
+		t.Fatalf("failed to generate V7 UUID #3: %v", err)
+	}
+
+	s1 := binary.BigEndian.Uint16(u1[6:8]) & 0xfff
+	s2 := binary.BigEndian.Uint16(u2[6:8]) & 0xfff
+	s3 := binary.BigEndian.Uint16(u3[6:8]) & 0xfff
+	s4 := binary.BigEndian.Uint16(u4[6:8]) & 0xfff
+
+	if s1 != 0 {
+		t.Errorf("sequence 1 should be zero, was %d", s1)
+	}
+
+	if s2 != s1+1 {
+		t.Errorf("sequence 2 expected to be one above sequence 1; seq 1: %d, seq 2: %d", s1, s2)
+	}
+
+	if s3 != 0 {
+		t.Errorf("sequence 3 should be zero, was %d", s3)
+	}
+
+	if s4 != 0 {
+		t.Errorf("sequence 4 should be zero, was %d", s4)
+	}
+}
+
+func TestDefaultHWAddrFunc(t *testing.T) {
+	tests := []struct {
+		n  string
+		fn func() ([]net.Interface, error)
+		hw net.HardwareAddr
+		e  string
+	}{
+		{
+			n: "Error",
+			fn: func() ([]net.Interface, error) {
+				return nil, errors.New("controlled failure")
+			},
+			e: "controlled failure",
+		},
+		{
+			n: "NoValidHWAddrReturned",
+			fn: func() ([]net.Interface, error) {
+				s := []net.Interface{
+					{
+						Index:        1,
+						MTU:          1500,
+						Name:         "test0",
+						HardwareAddr: net.HardwareAddr{1, 2, 3, 4},
+					},
+					{
+						Index:        2,
+						MTU:          1500,
+						Name:         "lo0",
+						HardwareAddr: net.HardwareAddr{5, 6, 7, 8},
+					},
+				}
+
+				return s, nil
+			},
+			e: "uuid: no HW address found",
+		},
+		{
+			n: "ValidHWAddrReturned",
+			fn: func() ([]net.Interface, error) {
+				s := []net.Interface{
+					{
+						Index:        1,
+						MTU:          1500,
+						Name:         "test0",
+						HardwareAddr: net.HardwareAddr{1, 2, 3, 4},
+					},
+					{
+						Index:        2,
+						MTU:          1500,
+						Name:         "lo0",
+						HardwareAddr: net.HardwareAddr{5, 6, 7, 8, 9, 0},
+					},
+				}
+
+				return s, nil
+			},
+			hw: net.HardwareAddr{5, 6, 7, 8, 9, 0},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.n, func(t *testing.T) {
+			// set the netInterfaces variable (function) for the test
+			// and then set it back to default in the deferred function
+			netInterfaces = tt.fn
+			defer func() {
+				netInterfaces = net.Interfaces
+			}()
+
+			var hw net.HardwareAddr
+			var err error
+
+			hw, err = defaultHWAddrFunc()
+
+			if len(tt.e) > 0 {
+				if err == nil {
+					t.Fatalf("defaultHWAddrFunc() error = <nil>, should contain %q", tt.e)
+				}
+
+				if !strings.Contains(err.Error(), tt.e) {
+					t.Fatalf("defaultHWAddrFunc() error = %q, should contain %q", err.Error(), tt.e)
+				}
+
+				return
+			}
+
+			if err != nil && tt.e == "" {
+				t.Fatalf("defaultHWAddrFunc() error = %q, want <nil>", err.Error())
+			}
+
+			if !bytes.Equal(hw, tt.hw) {
+				t.Fatalf("hw = %#v, want %#v", hw, tt.hw)
+			}
+		})
 	}
 }
 
