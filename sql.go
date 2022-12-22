@@ -29,7 +29,10 @@ import (
 )
 
 // Value implements the driver.Valuer interface.
-func (u UUID) Value() (driver.Value, error) {
+func (u *UUID) Value() (driver.Value, error) {
+	if u == nil {
+		return nil, nil
+	}
 	return u.String(), nil
 }
 

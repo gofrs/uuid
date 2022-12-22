@@ -22,13 +22,17 @@
 package uuid
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"testing"
 )
 
 func TestSQL(t *testing.T) {
-	t.Run("Value", testSQLValue)
+	t.Run("Value", func(t *testing.T) {
+		t.Run("NotNil", testSQLValue)
+		t.Run("Nil", testSQLNilValue)
+	})
 	t.Run("Scan", func(t *testing.T) {
 		t.Run("Binary", testSQLScanBinary)
 		t.Run("String", testSQLScanString)
@@ -49,6 +53,17 @@ func testSQLValue(t *testing.T) {
 	}
 	if want := codecTestUUID.String(); got != want {
 		t.Errorf("Value() == %q, want %q", got, want)
+	}
+}
+
+func testSQLNilValue(t *testing.T) {
+	var value *UUID
+	got, err := value.Value()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := driver.Value(nil); got != want {
+		t.Errorf("Value() == %T, want %T", got, want)
 	}
 }
 
