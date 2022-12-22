@@ -254,3 +254,19 @@ func TestTimestampFromV6(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkTimestampFromV6(b *testing.B) {
+	u := Must(FromString("1ec06cff-e9b1-621c-8627-ba3fd7e551c9"))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		TimestampFromV6(u)
+	}
+}
+
+func BenchmarkTimestampFromV6Old(b *testing.B) {
+	u := Must(FromString("1ec06cff-e9b1-621c-8627-ba3fd7e551c9"))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		TimestampFromV6Old(u)
+	}
+}

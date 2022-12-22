@@ -32,6 +32,9 @@ jobs:
     - name: Test
       run: go test ./... -race -coverprofile=coverage.txt -covermode=atomic
 
+    - name: Benchmark
+      run: go test -bench=. ./... -benchmem -benchtime=10s -count=5
+
     - name: Coverage
       uses: codecov/codecov-action@v2
 

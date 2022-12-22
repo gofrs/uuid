@@ -121,7 +121,7 @@ func TimestampFromV1(u UUID) (Timestamp, error) {
 // revision is finished, changes required to implement updates to the spec will
 // not be considered a breaking change. They will happen as a minor version
 // releases until the spec is final.
-func TimestampFromV6(u UUID) (Timestamp, error) {
+func TimestampFromV6Old(u UUID) (Timestamp, error) {
 	if u.Version() != 6 {
 		return 0, fmt.Errorf("uuid: %s is version %d, not version 6", u, u.Version())
 	}
@@ -131,6 +131,20 @@ func TimestampFromV6(u UUID) (Timestamp, error) {
 	low := binary.BigEndian.Uint16(u[6:8]) & 0xfff
 
 	return Timestamp(uint64(low) + (uint64(mid) << 12) + (uint64(hi) << 28)), nil
+}
+
+func TimestampFromV6(u UUID) (Timestamp, error) {
+	if u.Version() != 6 {
+		return 0, fmt.Errorf("uuid: %s is version %d, not version 6", u, u.Version())
+	}
+
+	gregorianOffset := uint64(epochStart)
+	timestampHigh := binary.BigEndian.Uint64(u[:8])
+
+	// remove the version and variant bits and concatenate the high and low timestamps
+	timestamp := ((timestampHigh >> 4) & 0xFFFFFFFFFFFFF000) | (0x0FFF & timestampHigh)
+
+	return Timestamp(timestamp - gregorianOffset), nil
 }
 
 // String parse helpers.
@@ -283,7 +297,8 @@ func (u *UUID) SetVariant(v byte) {
 // Must is a helper that wraps a call to a function returning (UUID, error)
 // and panics if the error is non-nil. It is intended for use in variable
 // initializations such as
-//  var packageUUID = uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))
+//
+//	var packageUUID = uuid.Must(uuid.FromString("123e4567-e89b-12d3-a456-426655440000"))
 func Must(u UUID, err error) UUID {
 	if err != nil {
 		panic(err)
