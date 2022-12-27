@@ -38,7 +38,8 @@ import (
 // UUID epoch (October 15, 1582) and Unix epoch (January 1, 1970).
 const epochStart = 122192928000000000
 
-type epochFunc func() time.Time
+// EpochFunc is the function type used to provide the current time.
+type EpochFunc func() time.Time
 
 // HWAddrFunc is the function type used to provide hardware (MAC) addresses.
 type HWAddrFunc func() (net.HardwareAddr, error)
@@ -119,12 +120,15 @@ type Gen struct {
 
 	rand io.Reader
 
-	epochFunc     epochFunc
+	epochFunc     EpochFunc
 	hwAddrFunc    HWAddrFunc
 	lastTime      uint64
 	clockSequence uint16
 	hardwareAddr  [6]byte
 }
+
+// GenOption is a function type that can be used to configure a Gen generator.
+type GenOption func(*Gen)
 
 // interface check -- build will fail if *Gen doesn't satisfy Generator
 var _ Generator = (*Gen)(nil)
@@ -147,10 +151,58 @@ func NewGen() *Gen {
 // MAC address being used, you'll need to create a new generator using this
 // function.
 func NewGenWithHWAF(hwaf HWAddrFunc) *Gen {
-	return &Gen{
+	return NewGenWithOptions(WithHWAddrFunc(hwaf))
+}
+
+// NewGenWithOptions returns a new instance of Gen with the options provided.
+// Most people should use NewGen() or NewGenWithHWAF() instead.
+//
+// To customize the generator, you can pass in one or more GenOption functions.
+// For example:
+//
+//	gen := NewGenWithOptions(
+//	    WithHWAddrFunc(myHWAddrFunc),
+//	    WithEpochFunc(myEpochFunc),
+//	    WithRandomReader(myRandomReader),
+//	)
+//
+// NewGenWithOptions(WithHWAddrFunc(myHWAddrFunc)) is equivalent to calling
+// NewGenWithHWAF(myHWAddrFunc)
+// NewGenWithOptions() is equivalent to calling NewGen()
+func NewGenWithOptions(opts ...GenOption) *Gen {
+	gen := &Gen{
 		epochFunc:  time.Now,
-		hwAddrFunc: hwaf,
+		hwAddrFunc: defaultHWAddrFunc,
 		rand:       rand.Reader,
+	}
+
+	for _, opt := range opts {
+		if opt != nil {
+			opt(gen)
+		}
+	}
+
+	return gen
+}
+
+// WithHWAddrFunc is a GenOption that allows you to provide your own HWAddrFunc function
+func WithHWAddrFunc(hwaf HWAddrFunc) GenOption {
+	return func(gen *Gen) {
+		gen.hwAddrFunc = hwaf
+	}
+}
+
+// WithEpochFunc is a GenOption that allows you to provide your own EpochFunc function
+func WithEpochFunc(epochf EpochFunc) GenOption {
+	return func(gen *Gen) {
+		gen.epochFunc = epochf
+	}
+}
+
+// WithRandomReader is a GenOption that allows you to provide your own random reader
+func WithRandomReader(reader io.Reader) GenOption {
+	return func(gen *Gen) {
+		gen.rand = reader
 	}
 }
 
