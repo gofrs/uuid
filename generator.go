@@ -177,7 +177,9 @@ func NewGenWithOptions(opts ...GenOption) *Gen {
 	}
 
 	for _, opt := range opts {
-		opt(gen)
+		if opt != nil {
+			opt(gen)
+		}
 	}
 
 	return gen
