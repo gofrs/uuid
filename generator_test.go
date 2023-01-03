@@ -24,7 +24,6 @@ package uuid
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -449,12 +448,14 @@ func testNewV6KSortable(t *testing.T) {
 
 func testNewV7(t *testing.T) {
 	t.Run("Basic", makeTestNewV7Basic())
+	t.Run("TestVector", makeTestNewV7TestVector())
 	t.Run("Basic10000000", makeTestNewV7Basic10000000())
 	t.Run("DifferentAcrossCalls", makeTestNewV7DifferentAcrossCalls())
 	t.Run("StaleEpoch", makeTestNewV7StaleEpoch())
 	t.Run("FaultyRand", makeTestNewV7FaultyRand())
 	t.Run("ShortRandomRead", makeTestNewV7ShortRandomRead())
 	t.Run("KSortable", makeTestNewV7KSortable())
+	t.Run("ClockSequence", makeTestNewV7ClockSequence())
 }
 
 func makeTestNewV7Basic() func(t *testing.T) {
@@ -468,6 +469,38 @@ func makeTestNewV7Basic() func(t *testing.T) {
 		}
 		if got, want := u.Variant(), VariantRFC4122; got != want {
 			t.Errorf("got variant %d, want %d", got, want)
+		}
+	}
+}
+
+// makeTestNewV7TestVector as defined in Draft04
+func makeTestNewV7TestVector() func(t *testing.T) {
+	return func(t *testing.T) {
+		pRand := make([]byte, 10)
+		//TODO make the comparison work with
+		////first 2 bytes will be read by clockSeq. First 4 bits will be overridden by Version. The next bits should be 0xCC3(3267)
+		//binary.LittleEndian.PutUint16(pRand[:2], uint16(0xCC3))
+		////8bytes will be read for rand_b. First 2 bits will be overridden by Variant
+		//binary.LittleEndian.PutUint64(pRand[2:], uint64(0x18C4DC0C0C07398F))
+
+		g := &Gen{
+			epochFunc: func() time.Time {
+				return time.UnixMilli(1645557742000)
+			},
+			rand: bytes.NewReader(pRand),
+		}
+		u, err := g.NewV7()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := u.Version(), V7; got != want {
+			t.Errorf("got version %d, want %d", got, want)
+		}
+		if got, want := u.Variant(), VariantRFC4122; got != want {
+			t.Errorf("got variant %d, want %d", got, want)
+		}
+		if got, want := u.String()[:15], "017f22e2-79b0-7"; got != want {
+			t.Errorf("got version %q, want %q", got, want)
 		}
 	}
 }
@@ -584,61 +617,32 @@ func makeTestNewV7KSortable() func(t *testing.T) {
 	}
 }
 
-func testNewV7ClockSequence(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping test in short mode.")
-	}
+func makeTestNewV7ClockSequence() func(t *testing.T) {
+	return func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("skipping test in short mode.")
+		}
 
-	g := NewGen()
+		g := NewGen()
+		//always return the same TS
+		g.epochFunc = func() time.Time {
+			return time.UnixMilli(1645557742000)
+		}
+		//by being KSortable with the same timestamp, it means the sequence is Not empty, and it is monotonic
+		uuids := make([]UUID, 10)
+		for i := range uuids {
+			u, err := g.NewV7()
+			testErrCheck(t, "NewV7()", "", err)
+			uuids[i] = u
+		}
 
-	// hack to try and reduce race conditions based on when the test starts
-	nsec := time.Now().Nanosecond()
-	sleepDur := int(time.Second) - nsec
-	time.Sleep(time.Duration(sleepDur))
-
-	u1, err := g.NewV7()
-	if err != nil {
-		t.Fatalf("failed to generate V7 UUID #1: %v", err)
-	}
-
-	u2, err := g.NewV7()
-	if err != nil {
-		t.Fatalf("failed to generate V7 UUID #2: %v", err)
-	}
-
-	time.Sleep(time.Millisecond)
-
-	u3, err := g.NewV7()
-	if err != nil {
-		t.Fatalf("failed to generate V7 UUID #3: %v", err)
-	}
-
-	time.Sleep(time.Second)
-
-	u4, err := g.NewV7()
-	if err != nil {
-		t.Fatalf("failed to generate V7 UUID #3: %v", err)
-	}
-
-	s1 := binary.BigEndian.Uint16(u1[6:8]) & 0xfff
-	s2 := binary.BigEndian.Uint16(u2[6:8]) & 0xfff
-	s3 := binary.BigEndian.Uint16(u3[6:8]) & 0xfff
-	s4 := binary.BigEndian.Uint16(u4[6:8]) & 0xfff
-
-	if s1 != 0 {
-		t.Errorf("sequence 1 should be zero, was %d", s1)
-	}
-
-	if s2 != s1+1 {
-		t.Errorf("sequence 2 expected to be one above sequence 1; seq 1: %d, seq 2: %d", s1, s2)
-	}
-
-	if s3 != 0 {
-		t.Errorf("sequence 3 should be zero, was %d", s3)
-	}
-
-	if s4 != 0 {
-		t.Errorf("sequence 4 should be zero, was %d", s4)
+		for i := 1; i < len(uuids); i++ {
+			p, n := uuids[i-1], uuids[i]
+			isLess := p.String() < n.String()
+			if !isLess {
+				t.Errorf("uuids[%d] (%s) not less than uuids[%d] (%s)", i-1, p, i, n)
+			}
+		}
 	}
 }
 
