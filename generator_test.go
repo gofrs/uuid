@@ -24,6 +24,7 @@ package uuid
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
@@ -477,11 +478,10 @@ func makeTestNewV7Basic() func(t *testing.T) {
 func makeTestNewV7TestVector() func(t *testing.T) {
 	return func(t *testing.T) {
 		pRand := make([]byte, 10)
-		//TODO make the comparison work with
-		////first 2 bytes will be read by clockSeq. First 4 bits will be overridden by Version. The next bits should be 0xCC3(3267)
-		//binary.LittleEndian.PutUint16(pRand[:2], uint16(0xCC3))
-		////8bytes will be read for rand_b. First 2 bits will be overridden by Variant
-		//binary.LittleEndian.PutUint64(pRand[2:], uint64(0x18C4DC0C0C07398F))
+		//first 2 bytes will be read by clockSeq. First 4 bits will be overridden by Version. The next bits should be 0xCC3(3267)
+		binary.LittleEndian.PutUint16(pRand[:2], uint16(0xCC3))
+		//8bytes will be read for rand_b. First 2 bits will be overridden by Variant
+		binary.LittleEndian.PutUint64(pRand[2:], uint64(0x18C4DC0C0C07398F))
 
 		g := &Gen{
 			epochFunc: func() time.Time {

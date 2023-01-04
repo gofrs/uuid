@@ -242,10 +242,10 @@ func (g *Gen) NewV6() (UUID, error) {
 }
 
 // getClockSequence returns the epoch and clock sequence for V1,V6 and V7 UUIDs.
-// When useUnixTS is false, it uses the Coordinated Universal Time (UTC) as a count of 100-
 //
-//	nanosecond intervals since 00:00:00.00, 15 October 1582 (the date of
-//	Gregorian reform to the Christian calendar).
+//	When useUnixTS is false, it uses the Coordinated Universal Time (UTC) as a count of 100-
+//
+// nanosecond intervals since 00:00:00.00, 15 October 1582 (the date of Gregorian reform to the Christian calendar).
 func (g *Gen) getClockSequence(useUnixTSMs bool) (uint64, uint16, error) {
 	var err error
 	g.clockSequenceOnce.Do(func() {
@@ -312,9 +312,12 @@ func (g *Gen) NewV7() (UUID, error) {
 	u[3] = byte(ms >> 16)
 	u[4] = byte(ms >> 8)
 	u[5] = byte(ms)
+
+	//The 6th byte contains the version and partially rand_a data.
+	//We will lose the most significant bites from the clockSeq (with SetVersion), but it is ok, we need the least significant that contains the counter to ensure the monotonic property
 	binary.BigEndian.PutUint16(u[6:8], clockSeq) // set rand_a with clock seq which is random and monotonic
 
-	//override first 4bits of u[6]. We lose the most significant bites from the clockSeq, but it is ok, we need the least significant that contains the counter to ensure the monotonic property
+	//override first 4bits of u[6].
 	u.SetVersion(V7)
 
 	//set rand_b 64bits of pseudo-random bits (first 2 will be overridden)
