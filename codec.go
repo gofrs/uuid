@@ -139,37 +139,36 @@ func (u UUID) MarshalText() ([]byte, error) {
 // UnmarshalText implements the encoding.TextUnmarshaler interface.
 // Following formats are supported:
 //
-//   "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-//   "{6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
-//   "urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
-//   "6ba7b8109dad11d180b400c04fd430c8"
-//   "{6ba7b8109dad11d180b400c04fd430c8}",
-//   "urn:uuid:6ba7b8109dad11d180b400c04fd430c8"
+//	"6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+//	"{6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
+//	"urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+//	"6ba7b8109dad11d180b400c04fd430c8"
+//	"{6ba7b8109dad11d180b400c04fd430c8}",
+//	"urn:uuid:6ba7b8109dad11d180b400c04fd430c8"
 //
 // ABNF for supported UUID text representation follows:
 //
-//   URN := 'urn'
-//   UUID-NID := 'uuid'
+//	URN := 'urn'
+//	UUID-NID := 'uuid'
 //
-//   hexdig := '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' |
-//             'a' | 'b' | 'c' | 'd' | 'e' | 'f' |
-//             'A' | 'B' | 'C' | 'D' | 'E' | 'F'
+//	hexdig := '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' |
+//	          'a' | 'b' | 'c' | 'd' | 'e' | 'f' |
+//	          'A' | 'B' | 'C' | 'D' | 'E' | 'F'
 //
-//   hexoct := hexdig hexdig
-//   2hexoct := hexoct hexoct
-//   4hexoct := 2hexoct 2hexoct
-//   6hexoct := 4hexoct 2hexoct
-//   12hexoct := 6hexoct 6hexoct
+//	hexoct := hexdig hexdig
+//	2hexoct := hexoct hexoct
+//	4hexoct := 2hexoct 2hexoct
+//	6hexoct := 4hexoct 2hexoct
+//	12hexoct := 6hexoct 6hexoct
 //
-//   hashlike := 12hexoct
-//   canonical := 4hexoct '-' 2hexoct '-' 2hexoct '-' 6hexoct
+//	hashlike := 12hexoct
+//	canonical := 4hexoct '-' 2hexoct '-' 2hexoct '-' 6hexoct
 //
-//   plain := canonical | hashlike
-//   uuid := canonical | hashlike | braced | urn
+//	plain := canonical | hashlike
+//	uuid := canonical | hashlike | braced | urn
 //
-//   braced := '{' plain '}' | '{' hashlike  '}'
-//   urn := URN ':' UUID-NID ':' plain
-//
+//	braced := '{' plain '}' | '{' hashlike  '}'
+//	urn := URN ':' UUID-NID ':' plain
 func (u *UUID) UnmarshalText(b []byte) error {
 	switch len(b) {
 	case 32: // hash
