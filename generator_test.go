@@ -99,9 +99,9 @@ func testNewV1Basic(t *testing.T) {
 
 func testNewV1BasicWithOptions(t *testing.T) {
 	g := NewGenWithOptions(
-		WithHWAddrFunc(nil),
-		WithEpochFunc(nil),
-		WithRandomReader(nil),
+		WithHWAddrFunc(),
+		WithEpochFunc(),
+		WithRandomReader(),
 	)
 	u, err := g.NewV1()
 	if err != nil {
