@@ -98,25 +98,11 @@ func testNewV1Basic(t *testing.T) {
 }
 
 func testNewV1BasicWithOptions(t *testing.T) {
-	dummyGenerator := func() {
-			return nil
-	}
 	g := NewGenWithOptions(
-		WithHWAddrFunc(dummyGenerator),
-		WithEpochFunc(dummyGenerator),
-		WithRandomReader(dummyGenerator),
+		WithHWAddrFunc(nil),
+		WithEpochFunc(nil),
+		WithRandomReader(nil),
 	)
-	u, err := g.NewV1()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got, want := u.Version(), V1; got != want {
-		t.Errorf("generated UUID with version %d, want %d", got, want)
-	}
-	if got, want := u.Variant(), VariantRFC4122; got != want {
-		t.Errorf("generated UUID with variant %d, want %d", got, want)
-	}
-}
 	u, err := g.NewV1()
 	if err != nil {
 		t.Fatal(err)

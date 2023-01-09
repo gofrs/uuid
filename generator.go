@@ -185,23 +185,41 @@ func NewGenWithOptions(opts ...GenOption) *Gen {
 	return gen
 }
 
-// WithHWAddrFunc is a GenOption that allows you to provide your own HWAddrFunc function
+// WithHWAddrFunc is a GenOption that allows you to provide your own HWAddrFunc
+// function.
+// When this option is nil, the defaultHWAddrFunc is used.
 func WithHWAddrFunc(hwaf HWAddrFunc) GenOption {
 	return func(gen *Gen) {
+		if hwaf == nil {
+			hwaf = defaultHWAddrFunc
+		}
+
 		gen.hwAddrFunc = hwaf
 	}
 }
 
-// WithEpochFunc is a GenOption that allows you to provide your own EpochFunc function
+// WithEpochFunc is a GenOption that allows you to provide your own EpochFunc
+// function.
+// When this option is nil, time.Now is used.
 func WithEpochFunc(epochf EpochFunc) GenOption {
 	return func(gen *Gen) {
+		if epochf == nil {
+			epochf = time.Now
+		}
+
 		gen.epochFunc = epochf
 	}
 }
 
-// WithRandomReader is a GenOption that allows you to provide your own random reader
+// WithRandomReader is a GenOption that allows you to provide your own random
+// reader.
+// When this option is nil, the default rand.Reader is used.
 func WithRandomReader(reader io.Reader) GenOption {
 	return func(gen *Gen) {
+		if reader == nil {
+			reader = rand.Reader
+		}
+
 		gen.rand = reader
 	}
 }
