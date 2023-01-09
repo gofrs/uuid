@@ -44,6 +44,7 @@ func TestGenerator(t *testing.T) {
 
 func testNewV1(t *testing.T) {
 	t.Run("Basic", testNewV1Basic)
+	t.Run("BasicWithOptions", testNewV1BasicWithOptions)
 	t.Run("DifferentAcrossCalls", testNewV1DifferentAcrossCalls)
 	t.Run("StaleEpoch", testNewV1StaleEpoch)
 	t.Run("FaultyRand", testNewV1FaultyRand)
@@ -85,6 +86,24 @@ func TestNewGenWithHWAF(t *testing.T) {
 
 func testNewV1Basic(t *testing.T) {
 	u, err := NewV1()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := u.Version(), V1; got != want {
+		t.Errorf("generated UUID with version %d, want %d", got, want)
+	}
+	if got, want := u.Variant(), VariantRFC4122; got != want {
+		t.Errorf("generated UUID with variant %d, want %d", got, want)
+	}
+}
+
+func testNewV1BasicWithOptions(t *testing.T) {
+	g := NewGenWithOptions(
+		WithHWAddrFunc(nil),
+		WithEpochFunc(nil),
+		WithRandomReader(nil),
+	)
+	u, err := g.NewV1()
 	if err != nil {
 		t.Fatal(err)
 	}
