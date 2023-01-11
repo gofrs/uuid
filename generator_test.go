@@ -573,12 +573,23 @@ func makeTestNewV7FaultyRand() func(t *testing.T) {
 		g := &Gen{
 			epochFunc: time.Now,
 			rand: &faultyReader{
-				readToFail: 0, // fail immediately
+				readToFail: 0,
 			},
 		}
 		u, err := g.NewV7()
 		if err == nil {
-			t.Errorf("got %v, nil error", u)
+			t.Errorf("got %v, nil error for clockSequence", u)
+		}
+
+		g = &Gen{
+			epochFunc: time.Now,
+			rand: &faultyReader{
+				readToFail: 1,
+			},
+		}
+		u, err = g.NewV7()
+		if err == nil {
+			t.Errorf("got %v, nil error rand_b", u)
 		}
 	}
 }
