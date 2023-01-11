@@ -22,9 +22,7 @@
 package uuid
 
 import (
-	"bytes"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 )
 
@@ -49,7 +47,9 @@ func (u *UUID) Scan(src interface{}) error {
 		return u.UnmarshalText(src)
 
 	case string:
-		return u.UnmarshalText([]byte(src))
+		uu, err := FromString(src)
+		*u = uu
+		return err
 	}
 
 	return fmt.Errorf("uuid: cannot convert %T to UUID", src)
@@ -83,27 +83,30 @@ func (u *NullUUID) Scan(src interface{}) error {
 	return u.UUID.Scan(src)
 }
 
+var nullJSON = []byte("null")
+
 // MarshalJSON marshals the NullUUID as null or the nested UUID
 func (u NullUUID) MarshalJSON() ([]byte, error) {
 	if !u.Valid {
-		return json.Marshal(nil)
+		return nullJSON, nil
 	}
-
-	return json.Marshal(u.UUID)
+	var buf [38]byte
+	buf[0] = '"'
+	encodeCanonical(buf[1:37], u.UUID)
+	buf[37] = '"'
+	return buf[:], nil
 }
 
 // UnmarshalJSON unmarshals a NullUUID
 func (u *NullUUID) UnmarshalJSON(b []byte) error {
-	if bytes.Equal(b, []byte("null")) {
+	if string(b) == "null" {
 		u.UUID, u.Valid = Nil, false
 		return nil
 	}
-
-	if err := json.Unmarshal(b, &u.UUID); err != nil {
-		return err
+	if n := len(b); n >= 2 && b[0] == '"' {
+		b = b[1 : n-1]
 	}
-
-	u.Valid = true
-
-	return nil
+	err := u.UUID.UnmarshalText(b)
+	u.Valid = (err == nil)
+	return err
 }
