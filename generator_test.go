@@ -44,7 +44,7 @@ func TestGenerator(t *testing.T) {
 
 func testNewV1(t *testing.T) {
 	t.Run("Basic", testNewV1Basic)
-	t.Run("BasicWithOptions", testNewV1BasicWithOptions)
+  t.Run("BasicWithOptions", testNewV1BasicWithOptions)
 	t.Run("DifferentAcrossCalls", testNewV1DifferentAcrossCalls)
 	t.Run("StaleEpoch", testNewV1StaleEpoch)
 	t.Run("FaultyRand", testNewV1FaultyRand)
