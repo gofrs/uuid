@@ -81,9 +81,9 @@ func NewV6() (UUID, error) {
 }
 
 // NewV7 returns a k-sortable UUID based on the current millisecond precision
-// UNIX epoch and 74 bits of pseudorandom data.
+// UNIX epoch and 74 bits of pseudorandom data. It supports single-node batch generation (multiple UUIDs in the same timestamp) with a Monotonic Random counter.
 //
-// This is implemented based on revision 03 of the Peabody UUID draft, and may
+// This is implemented based on revision 04 of the Peabody UUID draft, and may
 // be subject to change pending further revisions. Until the final specification
 // revision is finished, changes required to implement updates to the spec will
 // not be considered a breaking change. They will happen as a minor version
@@ -226,7 +226,7 @@ func WithRandomReader(reader io.Reader) GenOption {
 func (g *Gen) NewV1() (UUID, error) {
 	u := UUID{}
 
-	timeNow, clockSeq, err := g.getClockSequence()
+	timeNow, clockSeq, err := g.getClockSequence(false)
 	if err != nil {
 		return Nil, err
 	}
@@ -293,7 +293,7 @@ func (g *Gen) NewV6() (UUID, error) {
 		return Nil, err
 	}
 
-	timeNow, clockSeq, err := g.getClockSequence()
+	timeNow, clockSeq, err := g.getClockSequence(false)
 	if err != nil {
 		return Nil, err
 	}
@@ -309,8 +309,12 @@ func (g *Gen) NewV6() (UUID, error) {
 	return u, nil
 }
 
-// getClockSequence returns the epoch and clock sequence for V1 and V6 UUIDs.
-func (g *Gen) getClockSequence() (uint64, uint16, error) {
+// getClockSequence returns the epoch and clock sequence for V1,V6 and V7 UUIDs.
+//
+//	When useUnixTSMs is false, it uses the Coordinated Universal Time (UTC) as a count of 100-
+//
+// nanosecond intervals since 00:00:00.00, 15 October 1582 (the date of Gregorian reform to the Christian calendar).
+func (g *Gen) getClockSequence(useUnixTSMs bool) (uint64, uint16, error) {
 	var err error
 	g.clockSequenceOnce.Do(func() {
 		buf := make([]byte, 2)
@@ -326,7 +330,12 @@ func (g *Gen) getClockSequence() (uint64, uint16, error) {
 	g.storageMutex.Lock()
 	defer g.storageMutex.Unlock()
 
-	timeNow := g.getEpoch()
+	var timeNow uint64
+	if useUnixTSMs {
+		timeNow = uint64(g.epochFunc().UnixMilli())
+	} else {
+		timeNow = g.getEpoch()
+	}
 	// Clock didn't change since last UUID generation.
 	// Should increase clock sequence.
 	if timeNow <= g.lastTime {
@@ -340,28 +349,51 @@ func (g *Gen) getClockSequence() (uint64, uint16, error) {
 // NewV7 returns a k-sortable UUID based on the current millisecond precision
 // UNIX epoch and 74 bits of pseudorandom data.
 //
-// This is implemented based on revision 03 of the Peabody UUID draft, and may
+// This is implemented based on revision 04 of the Peabody UUID draft, and may
 // be subject to change pending further revisions. Until the final specification
 // revision is finished, changes required to implement updates to the spec will
 // not be considered a breaking change. They will happen as a minor version
 // releases until the spec is final.
 func (g *Gen) NewV7() (UUID, error) {
 	var u UUID
+	/* https://www.ietf.org/archive/id/draft-peabody-dispatch-new-uuid-format-04.html#name-uuid-version-7
+		0                   1                   2                   3
+	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |                           unix_ts_ms                          |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |          unix_ts_ms           |  ver  |       rand_a          |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |var|                        rand_b                             |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |                            rand_b                             |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
 
-	if _, err := io.ReadFull(g.rand, u[6:]); err != nil {
+	ms, clockSeq, err := g.getClockSequence(true)
+	if err != nil {
 		return Nil, err
 	}
-
-	tn := g.epochFunc()
-	ms := uint64(tn.Unix())*1e3 + uint64(tn.Nanosecond())/1e6
-	u[0] = byte(ms >> 40)
+	//UUIDv7 features a 48 bit timestamp. First 32bit (4bytes) represents seconds since 1970, followed by 2 bytes for the ms granularity.
+	u[0] = byte(ms >> 40) //1-6 bytes: big-endian unsigned number of Unix epoch timestamp
 	u[1] = byte(ms >> 32)
 	u[2] = byte(ms >> 24)
 	u[3] = byte(ms >> 16)
 	u[4] = byte(ms >> 8)
 	u[5] = byte(ms)
 
+	//support batching by using a monotonic pseudo-random sequence
+	//The 6th byte contains the version and partially rand_a data.
+	//We will lose the most significant bites from the clockSeq (with SetVersion), but it is ok, we need the least significant that contains the counter to ensure the monotonic property
+	binary.BigEndian.PutUint16(u[6:8], clockSeq) // set rand_a with clock seq which is random and monotonic
+
+	//override first 4bits of u[6].
 	u.SetVersion(V7)
+
+	//set rand_b 64bits of pseudo-random bits (first 2 will be overridden)
+	if _, err = io.ReadFull(g.rand, u[8:16]); err != nil {
+		return Nil, err
+	}
+	//override first 2 bits of byte[8] for the variant
 	u.SetVariant(VariantRFC4122)
 
 	return u, nil
