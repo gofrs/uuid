@@ -22,9 +22,13 @@
 package uuid
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"fmt"
 )
+
+var _ driver.Valuer = UUID{}
+var _ sql.Scanner = (*UUID)(nil)
 
 // Value implements the driver.Valuer interface.
 func (u UUID) Value() (driver.Value, error) {
