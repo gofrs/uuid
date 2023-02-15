@@ -356,7 +356,7 @@ func (g *Gen) getClockSequence(useUnixTSMs bool) (uint64, uint16, error) {
 // releases until the spec is final.
 func (g *Gen) NewV7() (UUID, error) {
 	var u UUID
-	/* https://www.ietf.org/archive/id/draft-peabody-dispatch-new-uuid-format-04.html#name-uuid-version-7
+	/* https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-01.html#name-uuid-version-7
 		0                   1                   2                   3
 	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
