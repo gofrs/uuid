@@ -50,7 +50,7 @@ deficiencies.
 
 ## Requirements
 
-This package requres Go 1.17 or later
+This package requires Go 1.17 or later
 
 ## Usage
 
