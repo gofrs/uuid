@@ -63,7 +63,7 @@ package main
 import (
 	"log"
 
-	"github.com/gofrs/uuid"
+	"github.com/gofrs/uuid/v5"
 )
 
 // Create a Version 4 UUID, panicking on error.
