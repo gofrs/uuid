@@ -131,6 +131,32 @@ func TimestampFromV6(u UUID) (Timestamp, error) {
 	return Timestamp(uint64(low) + (uint64(mid) << 12) + (uint64(hi) << 28)), nil
 }
 
+// TimestampFromV7 returns the Timestamp embedded within a V7 UUID. This
+// function returns an error if the UUID is any version other than 7.
+//
+// This is implemented based on revision 03 of the Peabody UUID draft, and may
+// be subject to change pending further revisions. Until the final specification
+// revision is finished, changes required to implement updates to the spec will
+// not be considered a breaking change. They will happen as a minor version
+// releases until the spec is final.
+func TimestampFromV7(u UUID) (Timestamp, error) {
+	if u.Version() != 7 {
+		return 0, fmt.Errorf("uuid: %s is version %d, not version 6", u, u.Version())
+	}
+
+	t := 0 |
+		(int64(u[0]) << 40) |
+		(int64(u[1]) << 32) |
+		(int64(u[2]) << 24) |
+		(int64(u[3]) << 16) |
+		(int64(u[4]) << 8) |
+		int64(u[5])
+
+	// convert to format expected by Timestamp
+	tsNanos := epochStart + time.UnixMilli(t).UTC().UnixNano()/100
+	return Timestamp(tsNanos), nil
+}
+
 // Nil is the nil UUID, as specified in RFC-4122, that has all 128 bits set to
 // zero.
 var Nil = UUID{}
