@@ -256,6 +256,31 @@ func TestTimestampFromV6(t *testing.T) {
 	}
 }
 
+func TestTimestampFromV7(t *testing.T) {
+	tests := []struct {
+		u       UUID
+		want    Timestamp
+		wanterr bool
+	}{
+		{u: Must(NewV1()), wanterr: true},
+		// v7 is unix_ts_ms, so zero value time is unix epoch
+		{u: Must(FromString("00000000-0000-7000-0000-000000000000")), want: 122192928000000000},
+		{u: Must(FromString("018a8fec-3ced-7164-995f-93c80cbdc575")), want: 139139245386050000},
+		{u: Must(FromString("ffffffff-ffff-7fff-ffff-ffffffffffff")), want: Timestamp(epochStart + time.UnixMilli((1<<48)-1).UTC().UnixNano()/100)},
+	}
+	for _, tt := range tests {
+		got, err := TimestampFromV7(tt.u)
+
+		switch {
+		case tt.wanterr && err == nil:
+			t.Errorf("TimestampFromV7(%v) want error, got %v", tt.u, got)
+
+		case tt.want != got:
+			t.Errorf("TimestampFromV7(%v) got %v, want %v", tt.u, got, tt.want)
+		}
+	}
+}
+
 func BenchmarkFormat(b *testing.B) {
 	var tests = []string{
 		"%s",
