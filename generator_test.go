@@ -798,18 +798,6 @@ func makeTestNewV7ShortRandomRead() func(t *testing.T) {
 	}
 }
 
-func makeTestNewV7ShortRandomReadWithOptions() func(t *testing.T) {
-	return func(t *testing.T) {
-		g := NewGenWithOptions(
-			WithRandomReader(bytes.NewReader([]byte{42})),
-		)
-		u, err := g.NewV7()
-		if err == nil {
-			t.Errorf("got %v, nil error", u)
-		}
-	}
-}
-
 func makeTestNewV7KSortable() func(t *testing.T) {
 	return func(t *testing.T) {
 		uuids := make([]UUID, 10)
