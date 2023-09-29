@@ -1,10 +1,14 @@
 # UUID
 
-[![License](https://img.shields.io/github/license/gofrs/uuid.svg)](https://github.com/gofrs/uuid/blob/master/LICENSE)
-[![Build Status](https://github.com/gofrs/uuid/actions/workflows/go.yml/badge.svg)](https://github.com/gofrs/uuid/actions/workflows/go.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/gofrs/uuid/v5.svg)](https://pkg.go.dev/github.com/gofrs/uuid/v5)
-[![Coverage Status](https://codecov.io/gh/gofrs/uuid/branch/master/graphs/badge.svg?branch=master)](https://codecov.io/gh/gofrs/uuid/)
-[![Go Report Card](https://goreportcard.com/badge/github.com/gofrs/uuid)](https://goreportcard.com/report/github.com/gofrs/uuid)
+[![License](https://img.shields.io/github/license/demfuture/go-uuid.svg)](https://github.com/demfuture/go-uuid/blob/master/LICENSE)
+[![Build Status](https://github.com/demfuture/go-uuid/actions/workflows/go.yml/badge.svg)](https://github.com/demfuture/go-uuid/actions/workflows/go.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/demfuture/go-uuid/v5.svg)](https://pkg.go.dev/github.com/gofrs/uuid/v5)
+[![Coverage Status](https://codecov.io/gh/demfuture/go-uuid/branch/master/graphs/badge.svg?branch=master)](https://codecov.io/gh/demfuture/go-uuid/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/demfuture/go-uuid)](https://goreportcard.com/report/github.com/demfuture/go-uuid)
+
+## gofrs/UUID Fork with BSON support
+
+This repository is a fork of [github.com/gofrs/uuid](https://github.com/gofrs/uuid) with added support for mongo-driver/bson marshalling and unmarshalling.
 
 Package uuid provides a pure Go implementation of Universally Unique Identifiers
 (UUID) variant as defined in RFC-4122. This package supports both the creation
@@ -25,6 +29,8 @@ The v6 and v7 IDs are **not** considered a part of the stable API, and may be su
 to this package. They will be updated as the draft RFC changes, and will become stable if and when the draft RFC is accepted.
 
 ## Project History
+
+This project is a fork of [github.com/gofrs/uuid](https://github.com/gofrs/uuid)
 
 This project was originally forked from the
 [github.com/satori/go.uuid](https://github.com/satori/go.uuid) repository after
