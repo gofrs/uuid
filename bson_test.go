@@ -45,7 +45,7 @@ func TestUUIDMarshalUnmarshalBSON(t *testing.T) {
 			}
 			realDataBytes := tBytes[5:]
 			if !reflect.DeepEqual(realDataBytes, expectedBytes) {
-				t.Errorf("Expected %v, got %v", expectedBytes, tBytes)
+				t.Errorf("Expected %v, got %v", expectedBytes, realDataBytes)
 			}
 		})
 
@@ -65,28 +65,25 @@ func TestUUIDMarshalUnmarshalBSON(t *testing.T) {
 			}
 		})
 
-	}
-}
-
-/*func TestUUID_UnmarshalBSONValue(t *testing.T) {
-	type args struct {
-		t   bsontype.Type
-		raw []byte
-	}
-	tests := []struct {
-		name    string
-		u       *UUID
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.u.UnmarshalBSONValue(tt.args.t, tt.args.raw); (err != nil) != tt.wantErr {
-				t.Errorf("UUID.UnmarshalBSONValue() error = %v, wantErr %v", err, tt.wantErr)
+		t.Run(fmt.Sprintf("UnmarshalBSONValue Wrong Type UUID Version %d", tID.version), func(t *testing.T) {
+			u := UUID{}
+			raw := tID.id.Bytes()
+			raw = append(uuidBSONSignature, raw...)
+			err := u.UnmarshalBSONValue(bson.TypeNull, raw)
+			if err == nil {
+				t.Errorf("Error not returned for wrong bson Type in UnmarshalBSONValue")
 			}
 		})
+
+		t.Run(fmt.Sprintf("UnmarshalBSONValue Wrong byte slice length %d", tID.version), func(t *testing.T) {
+			u := UUID{}
+			raw := tID.id.Bytes()[1:]
+			raw = append(uuidBSONSignature, raw...)
+			err := u.UnmarshalBSONValue(bson.TypeBinary, raw)
+			if err == nil {
+				t.Errorf("Error not returned for wrong binary data length in UnmarshalBSONValue")
+			}
+		})
+
 	}
 }
-*/
