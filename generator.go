@@ -298,7 +298,7 @@ func (g *Gen) NewV5(ns UUID, name string) UUID {
 //
 // NOTE: Earlier versions of the spec contained the phrase "the clock sequence
 // bits remain unchanged from their usage and position in [UUID Version 1]."
-// Later drafts now say "The clock sequence and node bits SHOULD be reset to a
+// Since draft-01, it says "The clock sequence and node bits SHOULD be reset to a
 // pseudo-random value for each new UUIDv6 generated; however, implementations
 // MAY choose to retain the old clock sequence and MAC address behavior."
 // The "Security Considerations" section of the draft says that "MAC addresses
