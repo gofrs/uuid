@@ -20,10 +20,10 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Package uuid provides implementations of the Universally Unique Identifier
-// (UUID), as specified in RFC-4122 and the Peabody RFC Draft (revision 03).
+// (UUID), as specified in RFC-4122 and the uuidrev-rfc4122bis RFC Draft (revision 14).
 //
 // RFC-4122[1] provides the specification for versions 1, 3, 4, and 5. The
-// Peabody UUID RFC Draft[2] provides the specification for the new k-sortable
+// uuidrev-rfc4122bis RFC Draft[2] provides the specification for the new k-sortable
 // UUIDs, versions 6 and 7.
 //
 // DCE 1.1[3] provides the specification for version 2, but version 2 support
@@ -36,7 +36,7 @@
 // ensure we were understanding the specification correctly.
 //
 // [1] https://tools.ietf.org/html/rfc4122
-// [2] https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-03
+// [2] https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis-14
 // [3] http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01
 package uuid
 
@@ -114,7 +114,7 @@ func TimestampFromV1(u UUID) (Timestamp, error) {
 // TimestampFromV6 returns the Timestamp embedded within a V6 UUID. This
 // function returns an error if the UUID is any version other than 6.
 //
-// This is implemented based on revision 03 of the Peabody UUID draft, and may
+// This is implemented based on revision 14 of the rfc4122bis UUID draft, and may
 // be subject to change pending further revisions. Until the final specification
 // revision is finished, changes required to implement updates to the spec will
 // not be considered a breaking change. They will happen as a minor version
@@ -134,7 +134,7 @@ func TimestampFromV6(u UUID) (Timestamp, error) {
 // TimestampFromV7 returns the Timestamp embedded within a V7 UUID. This
 // function returns an error if the UUID is any version other than 7.
 //
-// This is implemented based on revision 03 of the Peabody UUID draft, and may
+// This is implemented based on revision 14 of the rfc4122bis UUID draft, and may
 // be subject to change pending further revisions. Until the final specification
 // revision is finished, changes required to implement updates to the spec will
 // not be considered a breaking change. They will happen as a minor version
