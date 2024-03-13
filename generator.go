@@ -345,43 +345,6 @@ func (g *Gen) NewV6() (UUID, error) {
 	return u, nil
 }
 
-// getClockSequence returns the epoch and clock sequence for V1,V6 and V7 UUIDs.
-//
-//	When useUnixTSMs is false, it uses the Coordinated Universal Time (UTC) as a count of 100-
-//
-// nanosecond intervals since 00:00:00.00, 15 October 1582 (the date of Gregorian reform to the Christian calendar).
-func (g *Gen) getClockSequence(useUnixTSMs bool) (uint64, uint16, error) {
-	var err error
-	g.clockSequenceOnce.Do(func() {
-		buf := make([]byte, 2)
-		if _, err = io.ReadFull(g.rand, buf); err != nil {
-			return
-		}
-		g.clockSequence = binary.BigEndian.Uint16(buf)
-	})
-	if err != nil {
-		return 0, 0, err
-	}
-
-	g.storageMutex.Lock()
-	defer g.storageMutex.Unlock()
-
-	var timeNow uint64
-	if useUnixTSMs {
-		timeNow = uint64(g.epochFunc().UnixMilli())
-	} else {
-		timeNow = g.getEpoch()
-	}
-	// Clock didn't change since last UUID generation.
-	// Should increase clock sequence.
-	if timeNow <= g.lastTime {
-		g.clockSequence++
-	}
-	g.lastTime = timeNow
-
-	return timeNow, g.clockSequence, nil
-}
-
 // NewV7 returns a k-sortable UUID based on the current millisecond precision
 // UNIX epoch and 74 bits of pseudorandom data.
 //
@@ -434,6 +397,43 @@ func (g *Gen) NewV7() (UUID, error) {
 	u.SetVariant(VariantRFC4122)
 
 	return u, nil
+}
+
+// getClockSequence returns the epoch and clock sequence for V1,V6 and V7 UUIDs.
+//
+//	When useUnixTSMs is false, it uses the Coordinated Universal Time (UTC) as a count of 100-
+//
+// nanosecond intervals since 00:00:00.00, 15 October 1582 (the date of Gregorian reform to the Christian calendar).
+func (g *Gen) getClockSequence(useUnixTSMs bool) (uint64, uint16, error) {
+	var err error
+	g.clockSequenceOnce.Do(func() {
+		buf := make([]byte, 2)
+		if _, err = io.ReadFull(g.rand, buf); err != nil {
+			return
+		}
+		g.clockSequence = binary.BigEndian.Uint16(buf)
+	})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	g.storageMutex.Lock()
+	defer g.storageMutex.Unlock()
+
+	var timeNow uint64
+	if useUnixTSMs {
+		timeNow = uint64(g.epochFunc().UnixMilli())
+	} else {
+		timeNow = g.getEpoch()
+	}
+	// Clock didn't change since last UUID generation.
+	// Should increase clock sequence.
+	if timeNow <= g.lastTime {
+		g.clockSequence++
+	}
+	g.lastTime = timeNow
+
+	return timeNow, g.clockSequence, nil
 }
 
 // Returns the hardware address.
