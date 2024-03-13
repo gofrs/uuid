@@ -18,7 +18,7 @@ This package supports the following UUID versions:
 * Version 5, based on SHA-1 hashing of a named value (RFC-4122)
 
 This package also supports experimental Universally Unique Identifier implementations based on a
-[draft RFC](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-01.html) that updates RFC-4122:
+[draft RFC](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-14.html) that updates RFC-4122:
 
 * Version 6, a k-sortable id based on timestamp, and field-compatible with v1 (draft-ietf-uuidrev-rfc4122bis, RFC-4122)
 * Version 7, a k-sortable id based on timestamp (draft-ietf-uuidrev-rfc4122bis, RFC-4122)
@@ -52,7 +52,7 @@ deficiencies.
 
 ## Requirements
 
-This package requires Go 1.17 or later
+This package requires Go 1.19 or later
 
 ## Usage
 
@@ -94,4 +94,4 @@ func main() {
 
 * [RFC-4122](https://tools.ietf.org/html/rfc4122)
 * [DCE 1.1: Authentication and Security Services](http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01)
-* [New UUID Formats RFC (uuidrev) Draft Rev 01](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-01.html) (replaces earlier "peabody" drafts)
+* [New UUID Formats RFC (uuidrev) Draft Rev 14](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-14.html) (replaces earlier "peabody" drafts)
