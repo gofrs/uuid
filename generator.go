@@ -452,5 +452,5 @@ func defaultHWAddrFunc() (net.HardwareAddr, error) {
 			return iface.HardwareAddr, nil
 		}
 	}
-	return []byte{}, fmt.Errorf("uuid: no HW address found")
+	return []byte{}, fmt.Errorf("%w: no HW address found", &ErrUUID{})
 }
