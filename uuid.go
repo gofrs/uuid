@@ -161,6 +161,27 @@ func TimestampFromV7(u UUID) (Timestamp, error) {
 // zero.
 var Nil = UUID{}
 
+// Max is the maximum UUID, as specified in a draft of RFC-4122, that has all 128 bits
+// set to one. This feature is subject to removal if it is removed from the final draft of the RFC.
+var Max = UUID{
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+}
+
 // Predefined namespace UUIDs.
 var (
 	NamespaceDNS  = Must(FromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8"))
