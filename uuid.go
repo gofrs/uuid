@@ -141,7 +141,7 @@ func TimestampFromV6(u UUID) (Timestamp, error) {
 // releases until the spec is final.
 func TimestampFromV7(u UUID) (Timestamp, error) {
 	if u.Version() != 7 {
-		return 0, fmt.Errorf("uuid: %s is version %d, not version 6", u, u.Version())
+		return 0, fmt.Errorf("uuid: %s is version %d, not version 7", u, u.Version())
 	}
 
 	t := 0 |
