@@ -141,7 +141,7 @@ func TimestampFromV6(u UUID) (Timestamp, error) {
 // releases until the spec is final.
 func TimestampFromV7(u UUID) (Timestamp, error) {
 	if u.Version() != 7 {
-		return 0, fmt.Errorf("%w %s is version %d, not version 6", ErrInvalidVersion, u, u.Version())
+		return 0, fmt.Errorf("%w %s is version %d, not version 7", ErrInvalidVersion, u, u.Version())
 	}
 
 	t := 0 |
@@ -160,6 +160,27 @@ func TimestampFromV7(u UUID) (Timestamp, error) {
 // Nil is the nil UUID, as specified in RFC-4122, that has all 128 bits set to
 // zero.
 var Nil = UUID{}
+
+// Max is the maximum UUID, as specified in a draft of RFC-4122, that has all 128 bits
+// set to one. This feature is subject to removal if it is removed from the final draft of the RFC.
+var Max = UUID{
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+	0xFF,
+}
 
 // Predefined namespace UUIDs.
 var (
