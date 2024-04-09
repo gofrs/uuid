@@ -38,9 +38,3 @@ const (
 func (e Error) Error() string {
 	return string(e)
 }
-
-// Is checks if the target error is a UUID Error
-func (e Error) Is(target error) bool {
-	_, ok := target.(*Error)
-	return ok
-}

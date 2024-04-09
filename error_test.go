@@ -4,41 +4,32 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"reflect"
 	"testing"
 )
 
 func TestIsAsError(t *testing.T) {
-	var e Error
 	tcs := []struct {
-		err            error
-		expected       string
-		expectedTarget error
+		err      error
+		expected string
 	}{
 		{
-			err:            fmt.Errorf("%w sample error: %v", ErrInvalidVersion, 123),
-			expected:       "uuid: sample error: 123",
-			expectedTarget: &e,
+			err:      fmt.Errorf("%w sample error: %v", ErrInvalidVersion, 123),
+			expected: "uuid: sample error: 123",
 		},
 		{
-			err:            fmt.Errorf("%w", ErrInvalidFormat),
-			expected:       "uuid: invalid UUID format",
-			expectedTarget: ErrInvalidFormat,
+			err:      fmt.Errorf("%w", ErrInvalidFormat),
+			expected: "uuid: invalid UUID format",
 		},
 		{
-			err:            fmt.Errorf("%w %q", ErrIncorrectFormatInString, "test"),
-			expected:       "uuid: incorrect UUID format in string \"test\"",
-			expectedTarget: ErrIncorrectFormatInString,
+			err:      fmt.Errorf("%w %q", ErrIncorrectFormatInString, "test"),
+			expected: "uuid: incorrect UUID format in string \"test\"",
 		},
 	}
 	for i, tc := range tcs {
 		t.Run(fmt.Sprintf("Test case %d", i), func(t *testing.T) {
 			var e2 Error
-			if !errors.Is(tc.err, &e2) {
+			if !errors.As(tc.err, &e2) {
 				t.Error("expected error to be of a wrapped type of Error")
-			}
-			if !errors.Is(tc.err, tc.expectedTarget) {
-				t.Errorf("expected error to be of type %v, but was %v", reflect.TypeOf(tc.expectedTarget), reflect.TypeOf(tc.err))
 			}
 			if tc.err.Error() != tc.expected {
 				t.Errorf("expected err.Error() to be '%s' but was '%s'", tc.expected, tc.err.Error())
