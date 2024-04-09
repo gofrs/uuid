@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestError(t *testing.T) {
+func TestIsAsError(t *testing.T) {
 	var e Error
 	tcs := []struct {
 		err            error
@@ -51,7 +51,7 @@ func TestError(t *testing.T) {
 	}
 }
 
-func TestAllErrorMessages(t *testing.T) {
+func TestParseErrors(t *testing.T) {
 	tcs := []struct {
 		function string
 		uuidStr  string
@@ -119,8 +119,9 @@ func TestAllErrorMessages(t *testing.T) {
 			}
 		})
 	}
+}
 
-	// Unmarshal binary
+func TestUnmarshalBinaryError(t *testing.T) {
 	id := UUID{}
 	b := make([]byte, 33)
 	expectedErr := "uuid: UUID must be exactly 16 bytes long, got 33 bytes"
@@ -132,43 +133,30 @@ func TestAllErrorMessages(t *testing.T) {
 	if err.Error() != expectedErr {
 		t.Errorf("unexpected error '%s' != '%s'", err.Error(), expectedErr)
 	}
+}
 
-	// no hw address error
-	netInterfaces = func() ([]net.Interface, error) {
-		return nil, nil
-	}
-	defer func() {
-		netInterfaces = net.Interfaces
-	}()
-	_, err = defaultHWAddrFunc()
+func TestScanError(t *testing.T) {
+	id := UUID{}
+	err := id.Scan(123)
 	if err == nil {
 		t.Error("expected an error")
 		return
 	}
-	expectedErr = "uuid: no HW address found"
+	expectedErr := "uuid: cannot convert int to UUID"
 	if err.Error() != expectedErr {
 		t.Errorf("unexpected error '%s' != '%s'", err.Error(), expectedErr)
 	}
+}
 
-	// scan error
-	err = id.Scan(123)
-	if err == nil {
-		t.Error("expected an error")
-		return
-	}
-	expectedErr = "uuid: cannot convert int to UUID"
-	if err.Error() != expectedErr {
-		t.Errorf("unexpected error '%s' != '%s'", err.Error(), expectedErr)
-	}
-
+func TestUUIDVersionErrors(t *testing.T) {
 	// UUId V1 Version
-	id = FromStringOrNil("e86160d3-beff-443c-b9b5-1f8197ccb12e")
-	_, err = TimestampFromV1(id)
+	id := FromStringOrNil("e86160d3-beff-443c-b9b5-1f8197ccb12e")
+	_, err := TimestampFromV1(id)
 	if err == nil {
 		t.Error("expected an error")
 		return
 	}
-	expectedErr = "uuid: e86160d3-beff-443c-b9b5-1f8197ccb12e is version 4, not version 1"
+	expectedErr := "uuid: e86160d3-beff-443c-b9b5-1f8197ccb12e is version 4, not version 1"
 	if err.Error() != expectedErr {
 		t.Errorf("unexpected error '%s' != '%s'", err.Error(), expectedErr)
 	}
@@ -192,8 +180,27 @@ func TestAllErrorMessages(t *testing.T) {
 		t.Error("expected an error")
 		return
 	}
-	// There is a "bug" in the error message, this should probably be fixed (6 -> 7)
-	expectedErr = "uuid: e86160d3-beff-443c-b9b5-1f8197ccb12e is version 4, not version 6"
+	expectedErr = "uuid: e86160d3-beff-443c-b9b5-1f8197ccb12e is version 4, not version 7"
+	if err.Error() != expectedErr {
+		t.Errorf("unexpected error '%s' != '%s'", err.Error(), expectedErr)
+	}
+}
+
+// This test cannot be run in parallel with other tests since it modifies the
+// global state
+func TestErrNoHwAddressFound(t *testing.T) {
+	netInterfaces = func() ([]net.Interface, error) {
+		return nil, nil
+	}
+	defer func() {
+		netInterfaces = net.Interfaces
+	}()
+	_, err := defaultHWAddrFunc()
+	if err == nil {
+		t.Error("expected an error")
+		return
+	}
+	expectedErr := "uuid: no HW address found"
 	if err.Error() != expectedErr {
 		t.Errorf("unexpected error '%s' != '%s'", err.Error(), expectedErr)
 	}
