@@ -9,20 +9,24 @@ import (
 
 func TestIsAsError(t *testing.T) {
 	tcs := []struct {
-		err      error
-		expected string
+		err         error
+		expected    string
+		expectedErr error
 	}{
 		{
-			err:      fmt.Errorf("%w sample error: %v", ErrInvalidVersion, 123),
-			expected: "uuid: sample error: 123",
+			err:         fmt.Errorf("%w sample error: %v", ErrInvalidVersion, 123),
+			expected:    "uuid: sample error: 123",
+			expectedErr: ErrInvalidVersion,
 		},
 		{
-			err:      fmt.Errorf("%w", ErrInvalidFormat),
-			expected: "uuid: invalid UUID format",
+			err:         fmt.Errorf("%w", ErrInvalidFormat),
+			expected:    "uuid: invalid UUID format",
+			expectedErr: ErrInvalidFormat,
 		},
 		{
-			err:      fmt.Errorf("%w %q", ErrIncorrectFormatInString, "test"),
-			expected: "uuid: incorrect UUID format in string \"test\"",
+			err:         fmt.Errorf("%w %q", ErrIncorrectFormatInString, "test"),
+			expected:    "uuid: incorrect UUID format in string \"test\"",
+			expectedErr: ErrIncorrectFormatInString,
 		},
 	}
 	for i, tc := range tcs {
@@ -37,6 +41,9 @@ func TestIsAsError(t *testing.T) {
 			var uuidErr Error
 			if !errors.As(tc.err, &uuidErr) {
 				t.Error("expected errors.As() to work")
+			}
+			if !errors.Is(tc.err, tc.expectedErr) {
+				t.Errorf("expected error to be, or wrap, the %v sentinel error", tc.expectedErr)
 			}
 		})
 	}
