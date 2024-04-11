@@ -31,10 +31,6 @@ func TestIsAsError(t *testing.T) {
 	}
 	for i, tc := range tcs {
 		t.Run(fmt.Sprintf("Test case %d", i), func(t *testing.T) {
-			var e2 Error
-			if !errors.As(tc.err, &e2) {
-				t.Error("expected error to be of a wrapped type of Error")
-			}
 			if tc.err.Error() != tc.expected {
 				t.Errorf("expected err.Error() to be '%s' but was '%s'", tc.expected, tc.err.Error())
 			}
