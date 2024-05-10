@@ -58,9 +58,9 @@ const (
 	V3      // Version 3 (namespace name-based)
 	V4      // Version 4 (random)
 	V5      // Version 5 (namespace name-based)
-	V6      // Version 6 (k-sortable timestamp and random data, field-compatible with v1) [uuidrev draft]
-	V7      // Version 7 (k-sortable timestamp and random data) [uuidrev draft]
-	_       // Version 8 (k-sortable timestamp, meant for custom implementations) [uuidrev draft] [not implemented]
+	V6      // Version 6 (k-sortable timestamp and random data, field-compatible with v1)
+	V7      // Version 7 (k-sortable timestamp and random data)
+	_       // Version 8 (k-sortable timestamp, meant for custom implementations) [not implemented]
 )
 
 // UUID layout variants.

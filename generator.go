@@ -292,8 +292,8 @@ func (g *Gen) NewV6() (UUID, error) {
 	binary.BigEndian.PutUint16(u[4:], uint16(timeNow>>12))   // set time_mid
 	binary.BigEndian.PutUint16(u[6:], uint16(timeNow&0xfff)) // set time_low (minus four version bits)
 
-	//Based on the newest draft, we do NOT support batching version 6 UUIDs,
-	//so a fully pseudorandom value is used here.
+	//Based on the RFC 9562 recommendation that this data be fully random and not a monotonic counter,
+	//we do NOT support batching version 6 UUIDs.
 	//set clock_seq (14 bits) and node (48 bits) pseudo-random bits (first 2 bits will be overridden)
 	if _, err = io.ReadFull(g.rand, u[8:]); err != nil {
 		return Nil, err
@@ -336,10 +336,11 @@ func (g *Gen) NewV7() (UUID, error) {
 	u[4] = byte(ms >> 8)
 	u[5] = byte(ms)
 
-	//support batching by using a monotonic pseudo-random sequence,
-	//as described in draft section 6.2, Method 1.
+	//Support batching by using a monotonic pseudo-random sequence,
+	//as described in RFC 9562 section 6.2, Method 1.
 	//The 6th byte contains the version and partially rand_a data.
-	//We will lose the most significant bites from the clockSeq (with SetVersion), but it is ok, we need the least significant that contains the counter to ensure the monotonic property
+	//We will lose the most significant bites from the clockSeq (with SetVersion), but it is ok,
+	//we need the least significant that contains the counter to ensure the monotonic property
 	binary.BigEndian.PutUint16(u[6:8], clockSeq) // set rand_a with clock seq which is random and monotonic
 
 	//override first 4bits of u[6].
