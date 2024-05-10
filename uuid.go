@@ -47,7 +47,7 @@ import (
 // Size of a UUID in bytes.
 const Size = 16
 
-// UUID is an array type to represent the value of a UUID, as defined in RFC-4122.
+// UUID is an array type to represent the value of a UUID, as defined in RFC-9562.
 type UUID [Size]byte
 
 // UUID versions.
@@ -145,12 +145,12 @@ func TimestampFromV7(u UUID) (Timestamp, error) {
 	return Timestamp(tsNanos), nil
 }
 
-// Nil is the nil UUID, as specified in RFC-4122, that has all 128 bits set to
+// Nil is the nil UUID, as specified in RFC-9562, that has all 128 bits set to
 // zero.
 var Nil = UUID{}
 
-// Max is the maximum UUID, as specified in a draft of RFC-4122, that has all 128 bits
-// set to one. This feature is subject to removal if it is removed from the final draft of the RFC.
+// Max is the maximum UUID, as specified in RFC-9562, that has all 128 bits
+// set to one.
 var Max = UUID{
 	0xFF,
 	0xFF,
@@ -194,7 +194,7 @@ func (u UUID) Variant() byte {
 	case (u[8] >> 7) == 0x00:
 		return VariantNCS
 	case (u[8] >> 6) == 0x02:
-		return VariantRFC4122
+		return VariantRFC9562
 	case (u[8] >> 5) == 0x06:
 		return VariantMicrosoft
 	case (u[8] >> 5) == 0x07:
@@ -209,7 +209,7 @@ func (u UUID) Bytes() []byte {
 	return u[:]
 }
 
-// encodeCanonical encodes the canonical RFC-4122 form of UUID u into the
+// encodeCanonical encodes the canonical RFC-9562 form of UUID u into the
 // first 36 bytes dst.
 func encodeCanonical(dst []byte, u UUID) {
 	const hextable = "0123456789abcdef"
@@ -230,7 +230,7 @@ func encodeCanonical(dst []byte, u UUID) {
 	}
 }
 
-// String returns a canonical RFC-4122 string representation of the UUID:
+// String returns a canonical RFC-9562 string representation of the UUID:
 // xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.
 func (u UUID) String() string {
 	var buf [36]byte
@@ -242,8 +242,8 @@ func (u UUID) String() string {
 //
 // The behavior is as follows:
 // The 'x' and 'X' verbs output only the hex digits of the UUID, using a-f for 'x' and A-F for 'X'.
-// The 'v', '+v', 's' and 'q' verbs return the canonical RFC-4122 string representation.
-// The 'S' verb returns the RFC-4122 format, but with capital hex digits.
+// The 'v', '+v', 's' and 'q' verbs return the canonical RFC-9562 string representation.
+// The 'S' verb returns the RFC-9562 format, but with capital hex digits.
 // The '#v' verb returns the "Go syntax" representation, which is a 16 byte array initializer.
 // All other verbs not handled directly by the fmt package (like '%p') are unsupported and will return
 // "%!verb(uuid.UUID=value)" as recommended by the fmt package.
@@ -296,7 +296,7 @@ func (u *UUID) SetVariant(v byte) {
 	switch v {
 	case VariantNCS:
 		u[8] = (u[8]&(0xff>>1) | (0x00 << 7))
-	case VariantRFC4122:
+	case VariantRFC9562:
 		u[8] = (u[8]&(0xff>>2) | (0x02 << 6))
 	case VariantMicrosoft:
 		u[8] = (u[8]&(0xff>>3) | (0x06 << 5))

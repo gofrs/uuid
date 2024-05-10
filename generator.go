@@ -230,7 +230,7 @@ func (g *Gen) NewV1() (UUID, error) {
 	copy(u[10:], hardwareAddr)
 
 	u.SetVersion(V1)
-	u.SetVariant(VariantRFC4122)
+	u.SetVariant(VariantRFC9562)
 
 	return u, nil
 }
@@ -239,7 +239,7 @@ func (g *Gen) NewV1() (UUID, error) {
 func (g *Gen) NewV3(ns UUID, name string) UUID {
 	u := newFromHash(md5.New(), ns, name)
 	u.SetVersion(V3)
-	u.SetVariant(VariantRFC4122)
+	u.SetVariant(VariantRFC9562)
 
 	return u
 }
@@ -251,7 +251,7 @@ func (g *Gen) NewV4() (UUID, error) {
 		return Nil, err
 	}
 	u.SetVersion(V4)
-	u.SetVariant(VariantRFC4122)
+	u.SetVariant(VariantRFC9562)
 
 	return u, nil
 }
@@ -260,7 +260,7 @@ func (g *Gen) NewV4() (UUID, error) {
 func (g *Gen) NewV5(ns UUID, name string) UUID {
 	u := newFromHash(sha1.New(), ns, name)
 	u.SetVersion(V5)
-	u.SetVariant(VariantRFC4122)
+	u.SetVariant(VariantRFC9562)
 
 	return u
 }
@@ -302,7 +302,7 @@ func (g *Gen) NewV6() (UUID, error) {
 	u.SetVersion(V6)
 
 	//overwrite first 2 bits of byte[8] for the variant
-	u.SetVariant(VariantRFC4122)
+	u.SetVariant(VariantRFC9562)
 
 	return u, nil
 }
@@ -350,7 +350,7 @@ func (g *Gen) NewV7() (UUID, error) {
 		return Nil, err
 	}
 	//override first 2 bits of byte[8] for the variant
-	u.SetVariant(VariantRFC4122)
+	u.SetVariant(VariantRFC9562)
 
 	return u, nil
 }
@@ -407,7 +407,7 @@ func (g *Gen) getHardwareAddr() ([]byte, error) {
 		if _, err = io.ReadFull(g.rand, g.hardwareAddr[:]); err != nil {
 			return
 		}
-		// Set multicast bit as recommended by RFC-4122
+		// Set multicast bit as recommended by RFC-9562
 		g.hardwareAddr[0] |= 0x01
 	})
 	if err != nil {
