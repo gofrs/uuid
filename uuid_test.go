@@ -113,7 +113,7 @@ func testUUIDSetVersion(t *testing.T) {
 func testUUIDSetVariant(t *testing.T) {
 	variants := []byte{
 		VariantNCS,
-		VariantRFC4122,
+		VariantRFC9562,
 		VariantMicrosoft,
 		VariantFuture,
 	}

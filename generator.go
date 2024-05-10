@@ -70,33 +70,12 @@ func NewV5(ns UUID, name string) UUID {
 // NewV6 returns a k-sortable UUID based on a timestamp and 48 bits of
 // pseudorandom data. The timestamp in a V6 UUID is the same as V1, with the bit
 // order being adjusted to allow the UUID to be k-sortable.
-//
-// This is implemented based on revision 14 of the rfc4122bis UUID draft, and may
-// be subject to change pending further revisions. Until the final specification
-// revision is finished, changes required to implement updates to the spec will
-// not be considered a breaking change. They will happen as a minor version
-// releases until the spec is final.
-//
-// NOTE: Earlier versions of the spec contained the phrase "the clock sequence
-// bits remain unchanged from their usage and position in [UUID Version 1]."
-// Later drafts now say "The clock sequence and node bits SHOULD be reset to a
-// pseudo-random value for each new UUIDv6 generated; however, implementations
-// MAY choose to retain the old clock sequence and MAC address behavior."
-// The "Security Considerations" section of the draft says that "MAC addresses
-// pose inherent security risks around privacy and SHOULD NOT be used within
-// a UUID", so choose not to retain the old behavior.
 func NewV6() (UUID, error) {
 	return DefaultGenerator.NewV6()
 }
 
 // NewV7 returns a k-sortable UUID based on the current millisecond precision
 // UNIX epoch and 74 bits of pseudorandom data. It supports single-node batch generation (multiple UUIDs in the same timestamp) with a Monotonic Random counter.
-//
-// This is implemented based on revision 14 of the rfc4122bis UUID draft, and may
-// be subject to change pending further revisions. Until the final specification
-// revision is finished, changes required to implement updates to the spec will
-// not be considered a breaking change. They will happen as a minor version
-// releases until the spec is final.
 func NewV7() (UUID, error) {
 	return DefaultGenerator.NewV7()
 }
@@ -112,7 +91,7 @@ type Generator interface {
 }
 
 // Gen is a reference UUID generator based on the specifications laid out in
-// RFC-4122 and DCE 1.1: Authentication and Security Services. This type
+// RFC-9562 and DCE 1.1: Authentication and Security Services. This type
 // satisfies the Generator interface as defined in this package.
 //
 // For consumers who are generating V1 UUIDs, but don't want to expose the MAC
@@ -289,25 +268,8 @@ func (g *Gen) NewV5(ns UUID, name string) UUID {
 // NewV6 returns a k-sortable UUID based on a timestamp and 48 bits of
 // pseudorandom data. The timestamp in a V6 UUID is the same as V1, with the bit
 // order being adjusted to allow the UUID to be k-sortable.
-//
-// This is implemented based on revision 14 of the rfc4122bis UUID draft, and may
-// be subject to change pending further revisions. Until the final specification
-// revision is finished, changes required to implement updates to the spec will
-// not be considered a breaking change. They will happen as a minor version
-// releases until the spec is final.
-//
-// NOTE: Earlier versions of the spec contained the phrase "the clock sequence
-// bits remain unchanged from their usage and position in [UUID Version 1]."
-// Since draft-01, it says "The clock sequence and node bits SHOULD be reset to a
-// pseudo-random value for each new UUIDv6 generated; however, implementations
-// MAY choose to retain the old clock sequence and MAC address behavior."
-// The "Security Considerations" section of the draft says that "MAC addresses
-// pose inherent security risks around privacy and SHOULD NOT be used within
-// a UUID", so choose not to retain the old behavior.
-// Because this draft recommends fully-pseudo-random data for the final 62 bits,
-// users wishing to have monotonically increasing randomness should use UUIDv7 instead.
 func (g *Gen) NewV6() (UUID, error) {
-	/* https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-14.html#name-uuid-version-6
+	/* https://datatracker.ietf.org/doc/html/rfc9562#name-uuid-version-6
 	    0                   1                   2                   3
 	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -347,15 +309,9 @@ func (g *Gen) NewV6() (UUID, error) {
 
 // NewV7 returns a k-sortable UUID based on the current millisecond precision
 // UNIX epoch and 74 bits of pseudorandom data.
-//
-// This is implemented based on revision 14 of the rfc4122bis UUID draft, and may
-// be subject to change pending further revisions. Until the final specification
-// revision is finished, changes required to implement updates to the spec will
-// not be considered a breaking change. They will happen as a minor version
-// releases until the spec is final.
 func (g *Gen) NewV7() (UUID, error) {
 	var u UUID
-	/* https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-14.html#name-uuid-version-7
+	/* https://datatracker.ietf.org/doc/html/rfc9562#name-uuid-version-7
 	    0                   1                   2                   3
 	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

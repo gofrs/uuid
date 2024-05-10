@@ -7,24 +7,17 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/gofrs/uuid)](https://goreportcard.com/report/github.com/gofrs/uuid)
 
 Package uuid provides a pure Go implementation of Universally Unique Identifiers
-(UUID) variant as defined in RFC-4122. This package supports both the creation
+(UUID) variant as defined in RFC-9562. This package supports both the creation
 and parsing of UUIDs in different formats.
 
 This package supports the following UUID versions:
 
-* Version 1, based on timestamp and MAC address (RFC-4122)
-* Version 3, based on MD5 hashing of a named value (RFC-4122)
-* Version 4, based on random numbers (RFC-4122)
-* Version 5, based on SHA-1 hashing of a named value (RFC-4122)
-
-This package also supports experimental Universally Unique Identifier implementations based on a
-[draft RFC](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-14.html) that updates RFC-4122:
-
-* Version 6, a k-sortable id based on timestamp, and field-compatible with v1 (draft-ietf-uuidrev-rfc4122bis, RFC-4122)
-* Version 7, a k-sortable id based on timestamp (draft-ietf-uuidrev-rfc4122bis, RFC-4122)
-
-The v6 and v7 IDs are **not** considered a part of the stable API, and may be subject to behavior or API changes as part of minor releases
-to this package. They will be updated as the draft RFC changes, and will become stable if and when the draft RFC is accepted.
+* Version 1, based on timestamp and MAC address
+* Version 3, based on MD5 hashing of a named value
+* Version 4, based on random numbers
+* Version 5, based on SHA-1 hashing of a named value
+* Version 6, a k-sortable id based on timestamp, and field-compatible with v1
+* Version 7, a k-sortable id based on timestamp
 
 ## Project History
 
@@ -92,6 +85,5 @@ func main() {
 
 ## References
 
-* [RFC-4122](https://tools.ietf.org/html/rfc4122)
+* [RFC-9562](https://tools.ietf.org/html/rfc9563) (replaces RFC-4122)
 * [DCE 1.1: Authentication and Security Services](http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01)
-* [New UUID Formats RFC (uuidrev) Draft Rev 14](https://www.ietf.org/archive/id/draft-ietf-uuidrev-rfc4122bis-14.html) (replaces earlier "peabody" drafts)

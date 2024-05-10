@@ -20,24 +20,21 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Package uuid provides implementations of the Universally Unique Identifier
-// (UUID), as specified in RFC-4122 and the uuidrev-rfc4122bis RFC Draft (revision 14).
+// (UUID), as specified in RFC-9562 (formerly RFC-4122).
 //
-// RFC-4122[1] provides the specification for versions 1, 3, 4, and 5. The
-// uuidrev-rfc4122bis RFC Draft[2] provides the specification for the new k-sortable
-// UUIDs, versions 6 and 7.
+// RFC-9562[1] provides the specification for versions 1, 3, 4, 5, 6 and 7.
 //
-// DCE 1.1[3] provides the specification for version 2, but version 2 support
+// DCE 1.1[2] provides the specification for version 2, but version 2 support
 // was removed from this package in v4 due to some concerns with the
 // specification itself. Reading the spec, it seems that it would result in
 // generating UUIDs that aren't very unique. In having read the spec it seemed
 // that our implementation did not meet the spec. It also seems to be at-odds
-// with RFC 4122, meaning we would need quite a bit of special code to support
+// with RFC 9562, meaning we would need quite a bit of special code to support
 // it. Lastly, there were no Version 2 implementations that we could find to
 // ensure we were understanding the specification correctly.
 //
-// [1] https://tools.ietf.org/html/rfc4122
-// [2] https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis-14
-// [3] http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01
+// [1] https://tools.ietf.org/html/rfc9562
+// [2] http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01
 package uuid
 
 import (
@@ -69,10 +66,13 @@ const (
 // UUID layout variants.
 const (
 	VariantNCS byte = iota
-	VariantRFC4122
+	VariantRFC9562
 	VariantMicrosoft
 	VariantFuture
 )
+
+// Backward-compatible variant for RFC 4122
+const VariantRFC4122 = VariantRFC9562
 
 // UUID DCE domains.
 const (
@@ -113,12 +113,6 @@ func TimestampFromV1(u UUID) (Timestamp, error) {
 
 // TimestampFromV6 returns the Timestamp embedded within a V6 UUID. This
 // function returns an error if the UUID is any version other than 6.
-//
-// This is implemented based on revision 14 of the rfc4122bis UUID draft, and may
-// be subject to change pending further revisions. Until the final specification
-// revision is finished, changes required to implement updates to the spec will
-// not be considered a breaking change. They will happen as a minor version
-// releases until the spec is final.
 func TimestampFromV6(u UUID) (Timestamp, error) {
 	if u.Version() != 6 {
 		return 0, fmt.Errorf("uuid: %s is version %d, not version 6", u, u.Version())
@@ -133,12 +127,6 @@ func TimestampFromV6(u UUID) (Timestamp, error) {
 
 // TimestampFromV7 returns the Timestamp embedded within a V7 UUID. This
 // function returns an error if the UUID is any version other than 7.
-//
-// This is implemented based on revision 14 of the rfc4122bis UUID draft, and may
-// be subject to change pending further revisions. Until the final specification
-// revision is finished, changes required to implement updates to the spec will
-// not be considered a breaking change. They will happen as a minor version
-// releases until the spec is final.
 func TimestampFromV7(u UUID) (Timestamp, error) {
 	if u.Version() != 7 {
 		return 0, fmt.Errorf("uuid: %s is version %d, not version 7", u, u.Version())
