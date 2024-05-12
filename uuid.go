@@ -100,7 +100,7 @@ func (t Timestamp) Time() (time.Time, error) {
 // Returns an error if the UUID is any version other than 1.
 func TimestampFromV1(u UUID) (Timestamp, error) {
 	if u.Version() != 1 {
-		err := fmt.Errorf("uuid: %s is version %d, not version 1", u, u.Version())
+		err := fmt.Errorf("%w %s is version %d, not version 1", ErrInvalidVersion, u, u.Version())
 		return 0, err
 	}
 
@@ -115,7 +115,7 @@ func TimestampFromV1(u UUID) (Timestamp, error) {
 // function returns an error if the UUID is any version other than 6.
 func TimestampFromV6(u UUID) (Timestamp, error) {
 	if u.Version() != 6 {
-		return 0, fmt.Errorf("uuid: %s is version %d, not version 6", u, u.Version())
+		return 0, fmt.Errorf("%w %s is version %d, not version 6", ErrInvalidVersion, u, u.Version())
 	}
 
 	hi := binary.BigEndian.Uint32(u[0:4])
@@ -129,7 +129,7 @@ func TimestampFromV6(u UUID) (Timestamp, error) {
 // function returns an error if the UUID is any version other than 7.
 func TimestampFromV7(u UUID) (Timestamp, error) {
 	if u.Version() != 7 {
-		return 0, fmt.Errorf("uuid: %s is version %d, not version 7", u, u.Version())
+		return 0, fmt.Errorf("%w %s is version %d, not version 7", ErrInvalidVersion, u, u.Version())
 	}
 
 	t := 0 |
