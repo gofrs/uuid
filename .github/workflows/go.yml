@@ -38,7 +38,7 @@ jobs:
       run: go test ./... -race -coverprofile=coverage.txt -covermode=atomic
 
     - name: Coverage
-      uses: codecov/codecov-action@f32b3a3741e1053eb607407145bc9619351dc93b # v2.1.0
+      uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
 
   build-legacy:
     name: Build + Test Previous Stable
