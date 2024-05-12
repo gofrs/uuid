@@ -292,7 +292,7 @@ func (g *Gen) NewV6() (UUID, error) {
 	binary.BigEndian.PutUint16(u[4:], uint16(timeNow>>12))   // set time_mid
 	binary.BigEndian.PutUint16(u[6:], uint16(timeNow&0xfff)) // set time_low (minus four version bits)
 
-	//Based on the RFC 9562 recommendation that this data be fully random and not a monotonic counter,
+	// Based on the RFC 9562 recommendation that this data be fully random and not a monotonic counter,
 	//we do NOT support batching version 6 UUIDs.
 	//set clock_seq (14 bits) and node (48 bits) pseudo-random bits (first 2 bits will be overridden)
 	if _, err = io.ReadFull(g.rand, u[8:]); err != nil {
