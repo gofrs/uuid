@@ -92,7 +92,7 @@ func testNewV1Basic(t *testing.T) {
 	if got, want := u.Version(), V1; got != want {
 		t.Errorf("generated UUID with version %d, want %d", got, want)
 	}
-	if got, want := u.Variant(), VariantRFC4122; got != want {
+	if got, want := u.Variant(), VariantRFC9562; got != want {
 		t.Errorf("generated UUID with variant %d, want %d", got, want)
 	}
 }
@@ -110,7 +110,7 @@ func testNewV1BasicWithOptions(t *testing.T) {
 	if got, want := u.Version(), V1; got != want {
 		t.Errorf("generated UUID with version %d, want %d", got, want)
 	}
-	if got, want := u.Variant(), VariantRFC4122; got != want {
+	if got, want := u.Variant(), VariantRFC9562; got != want {
 		t.Errorf("generated UUID with variant %d, want %d", got, want)
 	}
 }
@@ -249,7 +249,7 @@ func testNewV3Basic(t *testing.T) {
 	if got, want := u.Version(), V3; got != want {
 		t.Errorf("NewV3(%v, %q): got version %d, want %d", ns, name, got, want)
 	}
-	if got, want := u.Variant(), VariantRFC4122; got != want {
+	if got, want := u.Variant(), VariantRFC9562; got != want {
 		t.Errorf("NewV3(%v, %q): got variant %d, want %d", ns, name, got, want)
 	}
 	want := "5df41881-3aed-3515-88a7-2f4a814cf09e"
@@ -296,7 +296,7 @@ func testNewV4Basic(t *testing.T) {
 	if got, want := u.Version(), V4; got != want {
 		t.Errorf("got version %d, want %d", got, want)
 	}
-	if got, want := u.Variant(), VariantRFC4122; got != want {
+	if got, want := u.Variant(), VariantRFC9562; got != want {
 		t.Errorf("got variant %d, want %d", got, want)
 	}
 }
@@ -383,7 +383,7 @@ func testNewV5Basic(t *testing.T) {
 	if got, want := u.Version(), V5; got != want {
 		t.Errorf("NewV5(%v, %q): got version %d, want %d", ns, name, got, want)
 	}
-	if got, want := u.Variant(), VariantRFC4122; got != want {
+	if got, want := u.Variant(), VariantRFC9562; got != want {
 		t.Errorf("NewV5(%v, %q): got variant %d, want %d", ns, name, got, want)
 	}
 	want := "2ed6657d-e927-568b-95e1-2665a8aea6a2"
@@ -433,7 +433,7 @@ func testNewV6Basic(t *testing.T) {
 	if got, want := u.Version(), V6; got != want {
 		t.Errorf("generated UUID with version %d, want %d", got, want)
 	}
-	if got, want := u.Variant(), VariantRFC4122; got != want {
+	if got, want := u.Variant(), VariantRFC9562; got != want {
 		t.Errorf("generated UUID with variant %d, want %d", got, want)
 	}
 }
@@ -624,7 +624,7 @@ func makeTestNewV7Basic() func(t *testing.T) {
 		if got, want := u.Version(), V7; got != want {
 			t.Errorf("got version %d, want %d", got, want)
 		}
-		if got, want := u.Variant(), VariantRFC4122; got != want {
+		if got, want := u.Variant(), VariantRFC9562; got != want {
 			t.Errorf("got variant %d, want %d", got, want)
 		}
 	}
@@ -652,7 +652,7 @@ func makeTestNewV7TestVector() func(t *testing.T) {
 		if got, want := u.Version(), V7; got != want {
 			t.Errorf("got version %d, want %d", got, want)
 		}
-		if got, want := u.Variant(), VariantRFC4122; got != want {
+		if got, want := u.Variant(), VariantRFC9562; got != want {
 			t.Errorf("got variant %d, want %d", got, want)
 		}
 		if got, want := u.String()[:15], "017f22e2-79b0-7"; got != want {
@@ -677,7 +677,7 @@ func makeTestNewV7Basic10000000() func(t *testing.T) {
 			if got, want := u.Version(), V7; got != want {
 				t.Errorf("got version %d, want %d", got, want)
 			}
-			if got, want := u.Variant(), VariantRFC4122; got != want {
+			if got, want := u.Variant(), VariantRFC9562; got != want {
 				t.Errorf("got variant %d, want %d", got, want)
 			}
 		}
