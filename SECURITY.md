@@ -3,7 +3,7 @@
 ## Supported Versions
 
 We support the latest version of this library. We do not guarantee support of previous versions. If a defect is reported, it will generally be fixed on the latest version 
-(provided it exists) irrespective of whether it was introduced to a prior version.
+(provided it exists) irrespective of whether it was introduced in a prior version.
 
 ## Reporting a Vulnerability
 
@@ -19,4 +19,4 @@ This project submits security [results](https://scorecard.dev/viewer/?uri=github
 
 One heuristic these scorecards measure to gauge whether a package is safe for consumption is an "Actively Maintained" metric. Because this library implements UUIDs,
 it is very stable - there is not much maintenance required other than adding/updating newer UUID versions, keeping up to date with latest versions of Go, and responding
-to reported exploits. As a result, periods of low active maintance are to be expected. 
+to reported exploits. As a result, periods of low active maintenance are to be expected. 
