@@ -418,15 +418,14 @@ func FuzzFromBytesFunc(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, payload []byte) {
 		u, err := FromBytes(payload)
-		if len(payload) != 16 && err == nil {
+		if len(payload) != Size && err == nil {
 			t.Errorf("%v did not result in an error", payload)
-		} else {
-			if u == Nil {
-				t.Errorf("%v resulted in Nil uuid", payload)
-			}
-			if !uuidRegexp.MatchString(u.String()) {
-				t.Errorf("%v resulted in invalid uuid %s", payload, u.String())
-			}
+		}
+		if len(payload) == Size && u == Nil {
+			t.Errorf("%v resulted in Nil uuid", payload)
+		}
+		if len(payload) == Size && !uuidRegexp.MatchString(u.String()) {
+			t.Errorf("%v resulted in invalid uuid %s", payload, u.String())
 		}
 		// otherwise, allow to pass if no panic
 	})
@@ -443,13 +442,14 @@ func FuzzFromBytesOrNilFunc(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, payload []byte) {
 		u := FromBytesOrNil(payload)
-		if len(payload) != 16 && u != Nil {
+		if len(payload) != Size && u != Nil {
 			t.Errorf("%v resulted in non Nil uuid %s", payload, u.String())
 		}
-		if u != Nil {
-			if !uuidRegexp.MatchString(u.String()) {
-				t.Errorf("%v resulted in invalid uuid %s", payload, u.String())
-			}
+		if len(payload) == Size && u == Nil {
+			t.Errorf("%v resulted Nil uuid", payload)
+		}
+		if len(payload) == Size && !uuidRegexp.MatchString(u.String()) {
+			t.Errorf("%v resulted in invalid uuid %s", payload, u.String())
 		}
 		// otherwise, allow to pass if no panic
 	})
