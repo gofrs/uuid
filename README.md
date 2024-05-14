@@ -6,7 +6,7 @@
 [![Coverage Status](https://codecov.io/gh/gofrs/uuid/branch/master/graphs/badge.svg?branch=master)](https://codecov.io/gh/gofrs/uuid/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gofrs/uuid)](https://goreportcard.com/report/github.com/gofrs/uuid)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8929/badge)](https://www.bestpractices.dev/projects/8929)
-
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/gofrs/uuid/badge)](https://scorecard.dev/viewer/?uri=github.com/gofrs/uuid)
 
 Package uuid provides a pure Go implementation of Universally Unique Identifiers
 (UUID) variant as defined in RFC-9562. This package supports both the creation
