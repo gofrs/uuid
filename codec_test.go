@@ -23,10 +23,7 @@ package uuid
 
 import (
 	"bytes"
-	"flag"
-	"fmt"
-	"os"
-	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -403,28 +400,104 @@ func BenchmarkParseV4(b *testing.B) {
 	}
 }
 
-var seedFuzzCorpus = flag.Bool("seed_fuzz_corpus", false, "seed fuzz test corpus")
+const uuidPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
 
-func TestSeedFuzzCorpus(t *testing.T) {
-	// flag.Parse() is called for us by the test binary.
-	if !*seedFuzzCorpus {
-		t.Skip("seeding fuzz test corpus only on demand")
+var fromBytesCorpus = [][]byte{
+	{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8},
+	{4, 8, 15, 16, 23, 42},
+}
+
+// FuzzFromBytesFunc is a fuzz testing suite that exercises the FromBytes function
+func FuzzFromBytesFunc(f *testing.F) {
+	for _, seed := range fromBytesCorpus {
+		f.Add(seed)
 	}
-	corpusDir := filepath.Join(".", "testdata", "corpus")
-	writeSeedFile := func(name, data string) error {
-		path := filepath.Join(corpusDir, name)
-		return os.WriteFile(path, []byte(data), os.ModePerm)
+	uuidRegexp, err := regexp.Compile(uuidPattern)
+	if err != nil {
+		f.Error("uuid regexp failed to compile")
 	}
-	for _, fst := range fromStringTests {
-		name := "seed_valid_" + fst.variant
-		if err := writeSeedFile(name, fst.input); err != nil {
-			t.Fatal(err)
+	f.Fuzz(func(t *testing.T, payload []byte) {
+		u, err := FromBytes(payload)
+		if len(payload) != 16 && err == nil {
+			t.Errorf("%v did not result in an error", payload)
 		}
-	}
-	for i, s := range invalidFromStringInputs {
-		name := fmt.Sprintf("seed_invalid_%d", i)
-		if err := writeSeedFile(name, s); err != nil {
-			t.Fatal(err)
+		if u != Nil {
+			if !uuidRegexp.MatchString(u.String()) {
+				t.Errorf("%v resulted in invalid uuid %s", payload, u.String())
+			}
 		}
+		// otherwise, allow to pass if no panic
+	})
+}
+
+// FuzzFromBytesOrNilFunc is a fuzz testing suite that exercises the FromBytesOrNil function
+func FuzzFromBytesOrNilFunc(f *testing.F) {
+	for _, seed := range fromBytesCorpus {
+		f.Add(seed)
 	}
+	uuidRegexp, err := regexp.Compile(uuidPattern)
+	if err != nil {
+		f.Error("uuid regexp failed to compile")
+	}
+	f.Fuzz(func(t *testing.T, payload []byte) {
+		u := FromBytesOrNil(payload)
+		if len(payload) != 16 && u != Nil {
+			t.Errorf("%v resulted in non Nil uuid %s", payload, u.String())
+		}
+		if u != Nil {
+			if !uuidRegexp.MatchString(u.String()) {
+				t.Errorf("%v resulted in invalid uuid %s", payload, u.String())
+			}
+		}
+		// otherwise, allow to pass if no panic
+	})
+}
+
+var fromStringCorpus = []string{
+	"6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+	"{6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
+	"urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+	"6ba7b8109dad11d180b400c04fd430c8",
+	"{6ba7b8109dad11d180b400c04fd430c8}",
+	"urn:uuid:6ba7b8109dad11d180b400c04fd430c8",
+}
+
+// FuzzFromStringFunc is a fuzz testing suite that exercises the FromString function
+func FuzzFromStringFunc(f *testing.F) {
+	for _, seed := range fromStringCorpus {
+		f.Add(seed)
+	}
+	uuidRegexp, err := regexp.Compile(uuidPattern)
+	if err != nil {
+		f.Error("uuid regexp failed to compile")
+	}
+	f.Fuzz(func(t *testing.T, payload string) {
+		u, err := FromString(payload)
+		if err != nil {
+			if !uuidRegexp.MatchString(u.String()) {
+				t.Errorf("%s resulted in invalid uuid %s", payload, u.String())
+			}
+		}
+		// otherwise, allow to pass if no panic
+	})
+}
+
+// FuzzFromStringOrNil is a fuzz testing suite that exercises the FromStringOrNil function
+func FuzzFromStringOrNilFunc(f *testing.F) {
+	for _, seed := range fromStringCorpus {
+		f.Add(seed)
+	}
+	uuidRegexp, err := regexp.Compile(uuidPattern)
+	if err != nil {
+		f.Error("uuid regexp failed to compile")
+	}
+	f.Fuzz(func(t *testing.T, payload string) {
+		u := FromStringOrNil(payload)
+		if u != Nil {
+			if !uuidRegexp.MatchString(u.String()) {
+				t.Errorf("%s resulted in invalid uuid %s", payload, u.String())
+			}
+		}
+		// otherwise, allow to pass if no panic
+	})
 }
