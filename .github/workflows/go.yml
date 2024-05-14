@@ -17,12 +17,6 @@ jobs:
     env:
       GO111MODULE: auto
     steps:
-
-    - name: Harden Runner
-      uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
-      with:
-        egress-policy: audit
-
     - name: Build
       uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
       with:
@@ -46,12 +40,6 @@ jobs:
     env:
       GO111MODULE: auto
     steps:
-
-    - name: Harden Runner
-      uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
-      with:
-        egress-policy: audit
-
     - name: Build
       uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
       with:
