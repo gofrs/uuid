@@ -420,8 +420,10 @@ func FuzzFromBytesFunc(f *testing.F) {
 		u, err := FromBytes(payload)
 		if len(payload) != 16 && err == nil {
 			t.Errorf("%v did not result in an error", payload)
-		}
-		if u != Nil {
+		} else {
+			if u == Nil {
+				t.Errorf("%v resulted in Nil uuid", payload)
+			}
 			if !uuidRegexp.MatchString(u.String()) {
 				t.Errorf("%v resulted in invalid uuid %s", payload, u.String())
 			}
@@ -474,6 +476,9 @@ func FuzzFromStringFunc(f *testing.F) {
 	f.Fuzz(func(t *testing.T, payload string) {
 		u, err := FromString(payload)
 		if err != nil {
+			if u == Nil {
+				t.Errorf("%s resulted in Nil uuid", payload)
+			}
 			if !uuidRegexp.MatchString(u.String()) {
 				t.Errorf("%s resulted in invalid uuid %s", payload, u.String())
 			}
