@@ -400,7 +400,7 @@ func BenchmarkParseV4(b *testing.B) {
 	}
 }
 
-const uuidPattern = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+const uuidPattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 
 var fromBytesCorpus = [][]byte{
 	{0x6b, 0xa7, 0xb8, 0x10, 0x9d, 0xad, 0x11, 0xd1, 0x80, 0xb4, 0x00, 0xc0, 0x4f, 0xd4, 0x30, 0xc8},
@@ -457,11 +457,12 @@ func FuzzFromBytesOrNilFunc(f *testing.F) {
 
 var fromStringCorpus = []string{
 	"6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-	"{6ba7b810-9dad-11d1-80b4-00c04fd430c8}",
-	"urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8",
-	"6ba7b8109dad11d180b400c04fd430c8",
-	"{6ba7b8109dad11d180b400c04fd430c8}",
-	"urn:uuid:6ba7b8109dad11d180b400c04fd430c8",
+	"6BA7B810-9DAD-11D1-80B4-00C04FD430C8",
+	"{6BA7B810-9DAD-11D1-80B4-00C04FD430C8}",
+	"urn:uuid:6BA7B810-9DAD-11D1-80B4-00C04FD430C8",
+	"6BA7B8109DAD11D180B400C04FD430C8",
+	"{6BA7B8109DAD11D180B400C04FD430C8}",
+	"urn:uuid:6BA7B8109DAD11D180B400C04FD430C8",
 }
 
 // FuzzFromStringFunc is a fuzz testing suite that exercises the FromString function
