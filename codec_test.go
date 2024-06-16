@@ -414,7 +414,7 @@ func FuzzFromBytesFunc(f *testing.F) {
 	}
 	uuidRegexp, err := regexp.Compile(uuidPattern)
 	if err != nil {
-		f.Error("uuid regexp failed to compile")
+		f.Fatal("uuid regexp failed to compile")
 	}
 	f.Fuzz(func(t *testing.T, payload []byte) {
 		u, err := FromBytes(payload)
@@ -472,7 +472,7 @@ func FuzzFromStringFunc(f *testing.F) {
 	}
 	uuidRegexp, err := regexp.Compile(uuidPattern)
 	if err != nil {
-		f.Error("uuid regexp failed to compile")
+		f.Fatal("uuid regexp failed to compile")
 	}
 	f.Fuzz(func(t *testing.T, payload string) {
 		u, err := FromString(payload)
