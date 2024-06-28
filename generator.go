@@ -211,9 +211,14 @@ func WithRandomReader(reader io.Reader) GenOption {
 
 // NewV1 returns a UUID based on the current timestamp and MAC address.
 func (g *Gen) NewV1() (UUID, error) {
+	return g.NewV1AtTime(g.epochFunc())
+}
+
+// NewV1AtTime returns a UUID based on the provided timestamp and current MAC address.
+func (g *Gen) NewV1AtTime(atTime time.Time) (UUID, error) {
 	u := UUID{}
 
-	timeNow, clockSeq, err := g.getClockSequence(false)
+	timeNow, clockSeq, err := g.getClockSequence(false, atTime)
 	if err != nil {
 		return Nil, err
 	}
@@ -268,6 +273,10 @@ func (g *Gen) NewV5(ns UUID, name string) UUID {
 // pseudorandom data. The timestamp in a V6 UUID is the same as V1, with the bit
 // order being adjusted to allow the UUID to be k-sortable.
 func (g *Gen) NewV6() (UUID, error) {
+	return g.NewV6AtTime(g.epochFunc())
+}
+
+func (g *Gen) NewV6AtTime(atTime time.Time) (UUID, error) {
 	/* https://datatracker.ietf.org/doc/html/rfc9562#name-uuid-version-6
 	    0                   1                   2                   3
 	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -282,7 +291,7 @@ func (g *Gen) NewV6() (UUID, error) {
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
 	var u UUID
 
-	timeNow, _, err := g.getClockSequence(false)
+	timeNow, _, err := g.getClockSequence(false, atTime)
 	if err != nil {
 		return Nil, err
 	}
@@ -309,6 +318,10 @@ func (g *Gen) NewV6() (UUID, error) {
 // NewV7 returns a k-sortable UUID based on the current millisecond precision
 // UNIX epoch and 74 bits of pseudorandom data.
 func (g *Gen) NewV7() (UUID, error) {
+	return g.NewV7AtTime(g.epochFunc())
+}
+
+func (g *Gen) NewV7AtTime(atTime time.Time) (UUID, error) {
 	var u UUID
 	/* https://datatracker.ietf.org/doc/html/rfc9562#name-uuid-version-7
 	    0                   1                   2                   3
@@ -323,7 +336,7 @@ func (g *Gen) NewV7() (UUID, error) {
 	   |                            rand_b                             |
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
 
-	ms, clockSeq, err := g.getClockSequence(true)
+	ms, clockSeq, err := g.getClockSequence(true, atTime)
 	if err != nil {
 		return Nil, err
 	}
@@ -360,7 +373,7 @@ func (g *Gen) NewV7() (UUID, error) {
 //	When useUnixTSMs is false, it uses the Coordinated Universal Time (UTC) as a count of 100-
 //
 // nanosecond intervals since 00:00:00.00, 15 October 1582 (the date of Gregorian reform to the Christian calendar).
-func (g *Gen) getClockSequence(useUnixTSMs bool) (uint64, uint16, error) {
+func (g *Gen) getClockSequence(useUnixTSMs bool, atTime time.Time) (uint64, uint16, error) {
 	var err error
 	g.clockSequenceOnce.Do(func() {
 		buf := make([]byte, 2)
@@ -378,9 +391,9 @@ func (g *Gen) getClockSequence(useUnixTSMs bool) (uint64, uint16, error) {
 
 	var timeNow uint64
 	if useUnixTSMs {
-		timeNow = uint64(g.epochFunc().UnixMilli())
+		timeNow = uint64(atTime.UnixMilli())
 	} else {
-		timeNow = g.getEpoch()
+		timeNow = g.getEpoch(atTime)
 	}
 	// Clock didn't change since last UUID generation.
 	// Should increase clock sequence.
@@ -418,8 +431,8 @@ func (g *Gen) getHardwareAddr() ([]byte, error) {
 
 // Returns the difference between UUID epoch (October 15, 1582)
 // and current time in 100-nanosecond intervals.
-func (g *Gen) getEpoch() uint64 {
-	return epochStart + uint64(g.epochFunc().UnixNano()/100)
+func (g *Gen) getEpoch(atTime time.Time) uint64 {
+	return epochStart + uint64(atTime.UnixNano()/100)
 }
 
 // Returns the UUID based on the hashing of the namespace UUID and name.
