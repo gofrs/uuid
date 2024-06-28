@@ -611,6 +611,7 @@ func testNewV7(t *testing.T) {
 	t.Run("FaultyRand", makeTestNewV7FaultyRand())
 	t.Run("FaultyRandWithOptions", makeTestNewV7FaultyRandWithOptions())
 	t.Run("ShortRandomRead", makeTestNewV7ShortRandomRead())
+	t.Run("ShortRandomReadWithOptions", makeTestNewV7ShortRandomReadWithOptions())
 	t.Run("KSortable", makeTestNewV7KSortable())
 	t.Run("ClockSequence", makeTestNewV7ClockSequence())
 }
