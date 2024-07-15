@@ -4,6 +4,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    groups:
+      all:
+        patterns:
+          - "*"  # Group all updates into a single larger pull request.
 
   - package-ecosystem: gomod
     directory: /
