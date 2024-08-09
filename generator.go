@@ -51,6 +51,11 @@ func NewV1() (UUID, error) {
 	return DefaultGenerator.NewV1()
 }
 
+// NewV1 returns a UUID based on the provided timestamp and MAC address.
+func NewV1AtTime(atTime time.Time) (UUID, error) {
+	return DefaultGenerator.NewV1AtTime(atTime)
+}
+
 // NewV3 returns a UUID based on the MD5 hash of the namespace UUID and name.
 func NewV3(ns UUID, name string) UUID {
 	return DefaultGenerator.NewV3(ns, name)
@@ -66,27 +71,45 @@ func NewV5(ns UUID, name string) UUID {
 	return DefaultGenerator.NewV5(ns, name)
 }
 
-// NewV6 returns a k-sortable UUID based on a timestamp and 48 bits of
+// NewV6 returns a k-sortable UUID based on the current timestamp and 48 bits of
 // pseudorandom data. The timestamp in a V6 UUID is the same as V1, with the bit
 // order being adjusted to allow the UUID to be k-sortable.
 func NewV6() (UUID, error) {
 	return DefaultGenerator.NewV6()
 }
 
-// NewV7 returns a k-sortable UUID based on the current millisecond precision
-// UNIX epoch and 74 bits of pseudorandom data. It supports single-node batch generation (multiple UUIDs in the same timestamp) with a Monotonic Random counter.
+// NewV6 returns a k-sortable UUID based on the provided timestamp and 48 bits of
+// pseudorandom data. The timestamp in a V6 UUID is the same as V1, with the bit
+// order being adjusted to allow the UUID to be k-sortable.
+func NewV6AtTime(atTime time.Time) (UUID, error) {
+	return DefaultGenerator.NewV6AtTime(atTime)
+}
+
+// NewV7 returns a k-sortable UUID based on the current millisecond-precision
+// UNIX epoch and 74 bits of pseudorandom data. It supports single-node batch
+// generation (multiple UUIDs in the same timestamp) with a Monotonic Random counter.
 func NewV7() (UUID, error) {
 	return DefaultGenerator.NewV7()
+}
+
+// NewV7 returns a k-sortable UUID based on the provided millisecond-precision
+// UNIX epoch and 74 bits of pseudorandom data. It supports single-node batch
+// generation (multiple UUIDs in the same timestamp) with a Monotonic Random counter.
+func NewV7AtTime(atTime time.Time) (UUID, error) {
+	return DefaultGenerator.NewV7AtTime(atTime)
 }
 
 // Generator provides an interface for generating UUIDs.
 type Generator interface {
 	NewV1() (UUID, error)
+	NewV1AtTime(time.Time) (UUID, error)
 	NewV3(ns UUID, name string) UUID
 	NewV4() (UUID, error)
 	NewV5(ns UUID, name string) UUID
 	NewV6() (UUID, error)
+	NewV6AtTime(time.Time) (UUID, error)
 	NewV7() (UUID, error)
+	NewV7AtTime(time.Time) (UUID, error)
 }
 
 // Gen is a reference UUID generator based on the specifications laid out in
