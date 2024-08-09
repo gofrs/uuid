@@ -53,6 +53,7 @@ func testNewV1(t *testing.T) {
 	t.Run("MissingNetworkWithOptions", testNewV1MissingNetworkWithOptions)
 	t.Run("MissingNetworkFaultyRand", testNewV1MissingNetworkFaultyRand)
 	t.Run("MissingNetworkFaultyRandWithOptions", testNewV1MissingNetworkFaultyRandWithOptions)
+	t.Run("AtSpecificTime", testNewV1AtTime)
 }
 
 func TestNewGenWithHWAF(t *testing.T) {
@@ -222,6 +223,53 @@ func testNewV1MissingNetworkFaultyRandWithOptions(t *testing.T) {
 	u, err := g.NewV1()
 	if err == nil {
 		t.Errorf("did not error on faulty reader and missing network, got %v", u)
+	}
+}
+
+func testNewV1AtTime(t *testing.T) {
+	atTime := time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
+
+	u1, err := NewV1AtTime(atTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	u2, err := NewV1AtTime(atTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Even with the same timestamp, there is still a monotonically increasing portion,
+	// so they should not be 100% identical. Bytes 0-7 and 10-16 should be identical.
+	u1Bytes := u1.Bytes()
+	u2Bytes := u2.Bytes()
+	binary.BigEndian.PutUint16(u1Bytes[8:], 0)
+	binary.BigEndian.PutUint16(u2Bytes[8:], 0)
+	if !bytes.Equal(u1Bytes, u2Bytes) {
+		t.Errorf("generated different UUIDs across calls with same timestamp: %v / %v", u1, u2)
+	}
+
+	ts1, err := TimestampFromV1(u1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time1, err := ts1.Time()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if time1.Equal(atTime) {
+		t.Errorf("extracted time is incorrect: was %v, expected %v", time1, atTime)
+	}
+	ts2, err := TimestampFromV1(u2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time2, err := ts2.Time()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if time2.Equal(atTime) {
+		t.Errorf("extracted time is incorrect: was %v, expected %v", time1, atTime)
 	}
 }
 
@@ -423,6 +471,7 @@ func testNewV6(t *testing.T) {
 	t.Run("ShortRandomRead", testNewV6ShortRandomRead)
 	t.Run("ShortRandomReadWithOptions", testNewV6ShortRandomReadWithOptions)
 	t.Run("KSortable", testNewV6KSortable)
+	t.Run("AtSpecificTime", testNewV6AtTime)
 }
 
 func testNewV6Basic(t *testing.T) {
@@ -601,6 +650,51 @@ func testNewV6KSortable(t *testing.T) {
 	}
 }
 
+func testNewV6AtTime(t *testing.T) {
+	atTime := time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
+
+	u1, err := NewV6AtTime(atTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	u2, err := NewV6AtTime(atTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Even with the same timestamp, there is still a random portion,
+	// so they should not be 100% identical. Bytes 0-8 are the timestamp so they should be identical.
+	u1Bytes := u1.Bytes()[:8]
+	u2Bytes := u2.Bytes()[:8]
+	if !bytes.Equal(u1Bytes, u2Bytes) {
+		t.Errorf("generated different UUIDs across calls with same timestamp: %v / %v", u1, u2)
+	}
+
+	ts1, err := TimestampFromV6(u1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time1, err := ts1.Time()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if time1.Equal(atTime) {
+		t.Errorf("extracted time is incorrect: was %v, expected %v", time1, atTime)
+	}
+	ts2, err := TimestampFromV6(u2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	time2, err := ts2.Time()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if time2.Equal(atTime) {
+		t.Errorf("extracted time is incorrect: was %v, expected %v", time1, atTime)
+	}
+}
+
 func testNewV7(t *testing.T) {
 	t.Run("Basic", makeTestNewV7Basic())
 	t.Run("TestVector", makeTestNewV7TestVector())
@@ -614,6 +708,7 @@ func testNewV7(t *testing.T) {
 	t.Run("ShortRandomReadWithOptions", makeTestNewV7ShortRandomReadWithOptions())
 	t.Run("KSortable", makeTestNewV7KSortable())
 	t.Run("ClockSequence", makeTestNewV7ClockSequence())
+	t.Run("AtSpecificTime", makeTestNewV7AtTime())
 }
 
 func makeTestNewV7Basic() func(t *testing.T) {
@@ -857,6 +952,53 @@ func makeTestNewV7ClockSequence() func(t *testing.T) {
 			if !isLess {
 				t.Errorf("uuids[%d] (%s) not less than uuids[%d] (%s)", i-1, p, i, n)
 			}
+		}
+	}
+}
+
+func makeTestNewV7AtTime() func(t *testing.T) {
+	return func(t *testing.T) {
+		atTime := time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
+
+		u1, err := NewV7AtTime(atTime)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		u2, err := NewV7AtTime(atTime)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Even with the same timestamp, there is still a random portion,
+		// so they should not be 100% identical. Bytes 0-6 are the timestamp so they should be identical.
+		u1Bytes := u1.Bytes()[:7]
+		u2Bytes := u2.Bytes()[:7]
+		if !bytes.Equal(u1Bytes, u2Bytes) {
+			t.Errorf("generated different UUIDs across calls with same timestamp: %v / %v", u1, u2)
+		}
+
+		ts1, err := TimestampFromV7(u1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		time1, err := ts1.Time()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if time1.Equal(atTime) {
+			t.Errorf("extracted time is incorrect: was %v, expected %v", time1, atTime)
+		}
+		ts2, err := TimestampFromV7(u2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		time2, err := ts2.Time()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if time2.Equal(atTime) {
+			t.Errorf("extracted time is incorrect: was %v, expected %v", time1, atTime)
 		}
 	}
 }
