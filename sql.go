@@ -32,7 +32,7 @@ var _ sql.Scanner = (*UUID)(nil)
 
 // Value implements the driver.Valuer interface.
 func (u UUID) Value() (driver.Value, error) {
-	return u.String(), nil
+	return u.Bytes(), nil
 }
 
 // Scan implements the sql.Scanner interface.
