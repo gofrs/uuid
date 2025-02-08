@@ -93,7 +93,7 @@ func (t Timestamp) Time() (time.Time, error) {
 	secs := uint64(t) / _100nsPerSecond
 	nsecs := 100 * (uint64(t) % _100nsPerSecond)
 
-	return time.Unix(int64(secs)-(epochStart/_100nsPerSecond), int64(nsecs)), nil
+	return time.Unix(int64(secs)-(epochStart/_100nsPerSecond), int64(nsecs)).UTC(), nil
 }
 
 // TimestampFromV1 returns the Timestamp embedded within a V1 UUID.
