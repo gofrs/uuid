@@ -281,6 +281,56 @@ func TestTimestampFromV7(t *testing.T) {
 	}
 }
 
+func TestTimestampMinMaxV167(t *testing.T) {
+	tests := []struct {
+		u    UUID
+		want time.Time
+	}{
+
+		// v1 min and max
+		{u: Must(FromString("00000000-0000-1000-8000-000000000000")), want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},           //1582-10-15 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-1fff-bfff-ffffffffffff")), want: time.Date(5236, 3, 31, 21, 21, 00, 684697500, time.UTC)}, //5236-03-31 21:21:00 (UTC)
+
+		// v6 min and max
+		{u: Must(FromString("00000000-0000-6000-8000-000000000000")), want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},           //1582-10-15 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-6fff-bfff-ffffffffffff")), want: time.Date(5236, 3, 31, 21, 21, 00, 684697500, time.UTC)}, //5236-03-31 21:21:00 (UTC)
+
+		// v7 min and max
+		{u: Must(FromString("00000000-0000-7000-8000-000000000000")), want: time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)},            //1970-01-01 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-7fff-bfff-ffffffffffff")), want: time.Date(10889, 8, 2, 5, 31, 50, 655000000, time.UTC)}, //10889-08-02 5:31:50.655 (UTC)
+	}
+	for _, tt := range tests {
+		var got Timestamp
+		var err error
+		var functionName string
+
+		switch tt.u.Version() {
+		case V1:
+			functionName = "TimestampFromV1"
+			got, err = TimestampFromV1(tt.u)
+		case V6:
+			functionName = "TimestampFromV6"
+			got, err = TimestampFromV6(tt.u)
+		case V7:
+			functionName = "TimestampFromV7"
+			got, err = TimestampFromV7(tt.u)
+		}
+
+		if err != nil {
+			t.Errorf(functionName+"(%v) got error %v, want %v", tt.u, err, tt.want)
+		}
+
+		tm, err := got.Time()
+		if err != nil {
+			t.Errorf(functionName+"(%v) got error %v, want %v", tt.u, err, tt.want)
+		}
+
+		if !tt.want.Equal(tm) {
+			t.Errorf(functionName+"(%v) got %v, want %v", tt.u, tm.UTC(), tt.want)
+		}
+	}
+}
+
 func BenchmarkFormat(b *testing.B) {
 	var tests = []string{
 		"%s",
