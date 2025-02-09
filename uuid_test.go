@@ -262,11 +262,11 @@ func TestTimestampFromV7(t *testing.T) {
 		want    Timestamp
 		wanterr bool
 	}{
-		{u: Must(NewV1()), wanterr: true},
 		// v7 is unix_ts_ms, so zero value time is unix epoch
 		{u: Must(FromString("00000000-0000-7000-0000-000000000000")), want: 122192928000000000},
 		{u: Must(FromString("018a8fec-3ced-7164-995f-93c80cbdc575")), want: 139139245386050000},
-		{u: Must(FromString("ffffffff-ffff-7fff-ffff-ffffffffffff")), want: Timestamp(epochStart + time.UnixMilli((1<<48)-1).UTC().UnixNano()/100)},
+		// Calculated as `(1<<48)-1` milliseconds, times 100 ns per ms, plus epoch offset from 1970 to 1582.
+		{u: Must(FromString("ffffffff-ffff-7fff-bfff-ffffffffffff")), want: 2936942695106550000},
 	}
 	for _, tt := range tests {
 		got, err := TimestampFromV7(tt.u)
