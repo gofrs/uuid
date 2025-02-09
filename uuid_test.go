@@ -262,6 +262,9 @@ func TestTimestampFromV7(t *testing.T) {
 		want    Timestamp
 		wanterr bool
 	}{
+		// These non-V7 versions should not be able to be provided to TimestampFromV7
+		{u: Must(NewV1()), wanterr: true},
+		{u: NewV3(NamespaceDNS, "a.example.com"), wanterr: true},
 		// v7 is unix_ts_ms, so zero value time is unix epoch
 		{u: Must(FromString("00000000-0000-7000-0000-000000000000")), want: 122192928000000000},
 		{u: Must(FromString("018a8fec-3ced-7164-995f-93c80cbdc575")), want: 139139245386050000},
