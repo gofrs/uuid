@@ -82,8 +82,10 @@ const (
 )
 
 // Timestamp is the count of 100-nanosecond intervals since 00:00:00.00,
-// 15 October 1582 within a V1 UUID. This type has no meaning for other
-// UUID versions since they don't have an embedded timestamp.
+// 15 October 1582 within a V1 or V6 UUID, or as a common intermediate
+// representation of the (Unix Millisecond) timestamp within a V7 UUID.
+// This type has no meaning for other UUID versions since they don't
+// have an embedded timestamp.
 type Timestamp uint64
 
 const _100nsPerSecond = 10000000
