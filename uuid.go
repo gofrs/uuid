@@ -87,6 +87,7 @@ const (
 type Timestamp uint64
 
 const _100nsPerSecond = 10000000
+const _100nsPerMillisecond = 10000
 
 // Time returns the time.Time representation of a Timestamp.
 //
@@ -145,7 +146,7 @@ func TimestampFromV7(u UUID) (Timestamp, error) {
 		int64(u[5])
 
 	// convert to format expected by Timestamp
-	tsNanos := epochStart + time.UnixMilli(t).UTC().UnixNano()/100
+	tsNanos := epochStart + (t * _100nsPerMillisecond)
 	return Timestamp(tsNanos), nil
 }
 
