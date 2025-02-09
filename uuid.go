@@ -88,12 +88,16 @@ type Timestamp uint64
 
 const _100nsPerSecond = 10000000
 
-// Time returns the UTC time.Time representation of a Timestamp
+// Time returns the time.Time representation of a Timestamp.
+//
+// The resulting time.Time:
+// - Contains only wall clock time (no monotonic clock component)
+// - Uses the local system timezone for the location
 func (t Timestamp) Time() (time.Time, error) {
 	secs := uint64(t) / _100nsPerSecond
 	nsecs := 100 * (uint64(t) % _100nsPerSecond)
 
-	return time.Unix(int64(secs)-(epochStart/_100nsPerSecond), int64(nsecs)).UTC(), nil
+	return time.Unix(int64(secs)-(epochStart/_100nsPerSecond), int64(nsecs)), nil
 }
 
 // TimestampFromV1 returns the Timestamp embedded within a V1 UUID.
