@@ -350,3 +350,94 @@ func BenchmarkFormat(b *testing.B) {
 		})
 	}
 }
+
+var uuidBenchmarkSink UUID
+var timestampBenchmarkSink Timestamp
+var timeBenchmarkSink time.Time
+
+func BenchmarkTimestampFrom(b *testing.B) {
+	b.ReportAllocs()
+
+	var err error
+	numbUUIDs := 1000
+	if testing.Short() {
+		numbUUIDs = 10
+	}
+
+	funcs := []struct {
+		name      string
+		create    func() (UUID, error)
+		timestamp func(UUID) (Timestamp, error)
+	}{
+		{"v1", NewV1, TimestampFromV1},
+		{"v6", NewV6, TimestampFromV6},
+		{"v7", NewV7, TimestampFromV7},
+	}
+
+	for _, fns := range funcs {
+		b.Run(fns.name, func(b *testing.B) {
+			// Make sure we don't just encode the same string over and over again as that will hit memory caches unrealistically
+			uuids := make([]UUID, numbUUIDs)
+			for i := 0; i < numbUUIDs; i++ {
+				uuids[i] = Must(fns.create())
+				if !testing.Short() {
+					time.Sleep(1 * time.Millisecond)
+				}
+			}
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				timestampBenchmarkSink, err = fns.timestamp(uuids[i%numbUUIDs])
+
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkTimestampTime(b *testing.B) {
+	b.ReportAllocs()
+
+	var err error
+	numbUUIDs := 1000
+	if testing.Short() {
+		numbUUIDs = 10
+	}
+
+	funcs := []struct {
+		name      string
+		create    func() (UUID, error)
+		timestamp func(UUID) (Timestamp, error)
+	}{
+		{"v1", NewV1, TimestampFromV1},
+		{"v6", NewV6, TimestampFromV6},
+		{"v7", NewV7, TimestampFromV7},
+	}
+
+	for _, fns := range funcs {
+		b.Run(fns.name, func(b *testing.B) {
+			// Make sure we don't just encode the same string over and over again as that will hit memory caches unrealistically
+			uuids := make([]UUID, numbUUIDs)
+			timestamps := make([]Timestamp, numbUUIDs)
+			for i := 0; i < numbUUIDs; i++ {
+				uuids[i] = Must(fns.create())
+				timestamps[i], err = fns.timestamp(uuids[i])
+				if err != nil {
+					b.Fatal(err)
+				}
+				if !testing.Short() {
+					time.Sleep(1 * time.Millisecond)
+				}
+			}
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				timeBenchmarkSink, err = timestamps[i%numbUUIDs].Time()
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+
+}

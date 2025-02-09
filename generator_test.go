@@ -1101,6 +1101,7 @@ func TestDefaultHWAddrFunc(t *testing.T) {
 }
 
 func BenchmarkGenerator(b *testing.B) {
+	b.ReportAllocs()
 	b.Run("NewV1", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			NewV1()
@@ -1119,6 +1120,16 @@ func BenchmarkGenerator(b *testing.B) {
 	b.Run("NewV5", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			NewV5(NamespaceDNS, "www.example.com")
+		}
+	})
+	b.Run("NewV6", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			NewV6()
+		}
+	})
+	b.Run("NewV7", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			NewV7()
 		}
 	})
 }
