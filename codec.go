@@ -21,7 +21,10 @@
 
 package uuid
 
-import "fmt"
+import (
+	"fmt"
+	"math/rand"
+)
 
 // FromBytes returns a UUID generated from the raw byte slice input.
 // It will return an error if the slice isn't 16 bytes long.
@@ -226,4 +229,20 @@ func (u *UUID) UnmarshalBinary(data []byte) error {
 	copy(u[:], data)
 
 	return nil
+}
+
+// WithCustomPRNG provides a deterministic random number generator for testing.
+//
+// Allows users to specify a PRNG with a fixed seed, enabling
+// reproducible UUID generation. Useful for unit testing and debugging.
+//
+// Arguments:
+// - seed: The seed value for the PRNG.
+//
+// Returns:
+// - GenOption: A function to configure the generator.
+func WithCustomPRNG(seed int64) GenOption {
+	return func(gen *Gen) {
+		gen.rand = rand.New(rand.NewSource(seed))
+	}
 }

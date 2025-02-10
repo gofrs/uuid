@@ -730,9 +730,9 @@ func makeTestNewV7Basic() func(t *testing.T) {
 func makeTestNewV7TestVector() func(t *testing.T) {
 	return func(t *testing.T) {
 		pRand := make([]byte, 10)
-		//first 2 bytes will be read by clockSeq. First 4 bits will be overridden by Version. The next bits should be 0xCC3(3267)
+		// first 2 bytes will be read by clockSeq. First 4 bits will be overridden by Version. The next bits should be 0xCC3(3267)
 		binary.LittleEndian.PutUint16(pRand[:2], uint16(0xCC3))
-		//8bytes will be read for rand_b. First 2 bits will be overridden by Variant
+		// 8bytes will be read for rand_b. First 2 bits will be overridden by Variant
 		binary.LittleEndian.PutUint64(pRand[2:], uint64(0x18C4DC0C0C07398F))
 
 		g := &Gen{
@@ -934,11 +934,11 @@ func makeTestNewV7ClockSequence() func(t *testing.T) {
 		}
 
 		g := NewGen()
-		//always return the same TS
+		// always return the same TS
 		g.epochFunc = func() time.Time {
 			return time.UnixMilli(1645557742000)
 		}
-		//by being KSortable with the same timestamp, it means the sequence is Not empty, and it is monotonic
+		// by being KSortable with the same timestamp, it means the sequence is Not empty, and it is monotonic
 		uuids := make([]UUID, 10)
 		for i := range uuids {
 			u, err := g.NewV7()
@@ -1001,6 +1001,79 @@ func makeTestNewV7AtTime() func(t *testing.T) {
 			t.Errorf("extracted time is incorrect: was %v, expected %v", time1, atTime)
 		}
 	}
+}
+
+func TestGenerateBatchV7(t *testing.T) {
+	gen := NewMonotonicGen()
+	batchSize := 100
+
+	t.Run("Strict Monotonicity", func(t *testing.T) {
+		uuids, err := gen.GenerateBatchV7(batchSize)
+		if err != nil {
+			t.Fatalf("Error generating batch: %v", err)
+		}
+
+		for i := 1; i < len(uuids); i++ {
+			if uuids[i-1].String() >= uuids[i].String() {
+				t.Errorf("UUID %d (%s) is not less than UUID %d (%s)", i-1, uuids[i-1], i, uuids[i])
+			}
+		}
+	})
+
+	t.Run("Batch Size Validation", func(t *testing.T) {
+		uuids, err := gen.GenerateBatchV7(0)
+		if err == nil {
+			t.Errorf("expected error for zero batch size, got none")
+		}
+		if uuids != nil {
+			t.Errorf("expected nil UUID slice for zero batch size, got: %v", uuids)
+		}
+	})
+}
+
+func TestWithCustomPRNG(t *testing.T) {
+	seed := int64(42)
+	gen := NewMonotonicGen(WithCustomPRNG(seed))
+
+	t.Run("Deterministic UUID Generation", func(t *testing.T) {
+		uuid1, err := gen.newMonotonicV7()
+		if err != nil {
+			t.Fatalf("error generating UUID: %v", err)
+		}
+
+		uuid2, err := gen.newMonotonicV7()
+		if err != nil {
+			t.Fatalf("error generating UUID: %v", err)
+		}
+
+		if uuid1.String() == uuid2.String() {
+			t.Errorf("UUIDs generated with same seed are identical: %s", uuid1)
+		}
+	})
+}
+
+func TestMonotonicGenEdgeCases(t *testing.T) {
+	gen := NewMonotonicGen()
+	t.Run("Epoch Boundary Handling", func(t *testing.T) {
+		uuid, err := gen.newMonotonicV7()
+		if err != nil {
+			t.Fatalf("error generating UUID at epoch boundary: %v", err)
+		}
+		if uuid.IsNil() {
+			t.Errorf("Generated UUID at epoch boundary is nil: %v", uuid)
+		}
+	})
+
+	t.Run("Counter Rollover", func(t *testing.T) {
+		gen.monotonicCounter = 0xFFFF
+		uuid, err := gen.newMonotonicV7()
+		if err != nil {
+			t.Fatalf("error generating UUID during counter rollover: %v", err)
+		}
+		if uuid.IsNil() {
+			t.Errorf("Generated UUID during counter rollover is nil: %v", uuid)
+		}
+	})
 }
 
 func TestDefaultHWAddrFunc(t *testing.T) {

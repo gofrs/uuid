@@ -300,3 +300,60 @@ func BenchmarkFormat(b *testing.B) {
 		})
 	}
 }
+
+func FuzzGenerateBatchV7(f *testing.F) {
+	gen := NewMonotonicGen()
+
+	f.Fuzz(func(t *testing.T, batchSize int) {
+		if batchSize > 10000 {
+			batchSize = 10000
+		}
+		
+		uuids, err := gen.GenerateBatchV7(batchSize)
+
+		if batchSize <= 0 {
+			if err == nil {
+				t.Errorf("expected error for batchSize %d, got none", batchSize)
+			}
+			if uuids != nil {
+				t.Errorf("expected nil UUID slice for batchSize %d, got: %v", batchSize, uuids)
+			}
+			return
+		}
+
+		if err != nil {
+			t.Errorf("unexpected error for batchSize %d: %v", batchSize, err)
+			return
+		}
+
+		for i := 1; i < len(uuids); i++ {
+			if uuids[i-1].String() >= uuids[i].String() {
+				t.Errorf("UUID %d (%s) is not less than UUID %d (%s)", i-1, uuids[i-1], i, uuids[i])
+			}
+		}
+	})
+}
+
+func FuzzNewMonotonicV7(f *testing.F) {
+	gen := NewMonotonicGen()
+
+	f.Fuzz(func(t *testing.T, epochMilli int64) {
+		// simulates different timestamps and scenarios.
+		gen.epochFunc = func() time.Time {
+			return time.UnixMilli(epochMilli)
+		}
+
+		uuid, err := gen.newMonotonicV7()
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+
+		// validates the UUID format.
+		if uuid.Version() != V7 {
+			t.Errorf("Generated UUID has incorrect version: got %d, want %d", uuid.Version(), V7)
+		}
+		if uuid.Variant() != VariantRFC9562 {
+			t.Errorf("Generated UUID has incorrect variant: got %d, want %d", uuid.Variant(), VariantRFC9562)
+		}
+	})
+}

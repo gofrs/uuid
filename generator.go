@@ -26,6 +26,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/binary"
+	"errors"
 	"hash"
 	"io"
 	"net"
@@ -193,6 +194,32 @@ func NewGenWithOptions(opts ...GenOption) *Gen {
 	return gen
 }
 
+// MonotonicGen extends the Gen struct with a counter for batch generation.
+//
+// MonotonicGen ensures the generation of strictly monotonic UUIDs within a
+// batch by utilizing a counter in conjunction with timestamps. This is
+// particularly useful for applications requiring ordered identifiers, such
+// as database indices or log sequencing.
+type MonotonicGen struct {
+	Gen
+	monotonicCounter uint16
+	monotonicMutex   sync.Mutex
+}
+
+// NewMonotonicGen creates a MonotonicGen instance with configurable options.
+//
+// Arguments:
+// - opts: Configuration options for the generator.
+//
+// Returns:
+// - *MonotonicGen: The configured generator.
+func NewMonotonicGen(opts ...GenOption) *MonotonicGen {
+	gen := &MonotonicGen{
+		Gen: *NewGenWithOptions(opts...),
+	}
+	return gen
+}
+
 // WithHWAddrFunc is a GenOption that allows you to provide your own HWAddrFunc
 // function.
 // When this option is nil, the defaultHWAddrFunc is used.
@@ -327,15 +354,15 @@ func (g *Gen) NewV6AtTime(atTime time.Time) (UUID, error) {
 	binary.BigEndian.PutUint16(u[6:], uint16(timeNow&0xfff)) // set time_low (minus four version bits)
 
 	// Based on the RFC 9562 recommendation that this data be fully random and not a monotonic counter,
-	//we do NOT support batching version 6 UUIDs.
-	//set clock_seq (14 bits) and node (48 bits) pseudo-random bits (first 2 bits will be overridden)
+	// we do NOT support batching version 6 UUIDs.
+	// set clock_seq (14 bits) and node (48 bits) pseudo-random bits (first 2 bits will be overridden)
 	if _, err = io.ReadFull(g.rand, u[8:]); err != nil {
 		return Nil, err
 	}
 
 	u.SetVersion(V6)
 
-	//overwrite first 2 bits of byte[8] for the variant
+	// overwrite first 2 bits of byte[8] for the variant
 	u.SetVariant(VariantRFC9562)
 
 	return u, nil
@@ -368,29 +395,93 @@ func (g *Gen) NewV7AtTime(atTime time.Time) (UUID, error) {
 	if err != nil {
 		return Nil, err
 	}
-	//UUIDv7 features a 48 bit timestamp. First 32bit (4bytes) represents seconds since 1970, followed by 2 bytes for the ms granularity.
-	u[0] = byte(ms >> 40) //1-6 bytes: big-endian unsigned number of Unix epoch timestamp
+	// UUIDv7 features a 48 bit timestamp. First 32bit (4bytes) represents seconds since 1970, followed by 2 bytes for the ms granularity.
+	u[0] = byte(ms >> 40) // 1-6 bytes: big-endian unsigned number of Unix epoch timestamp
 	u[1] = byte(ms >> 32)
 	u[2] = byte(ms >> 24)
 	u[3] = byte(ms >> 16)
 	u[4] = byte(ms >> 8)
 	u[5] = byte(ms)
 
-	//Support batching by using a monotonic pseudo-random sequence,
-	//as described in RFC 9562 section 6.2, Method 1.
-	//The 6th byte contains the version and partially rand_a data.
-	//We will lose the most significant bites from the clockSeq (with SetVersion), but it is ok,
-	//we need the least significant that contains the counter to ensure the monotonic property
+	// Support batching by using a monotonic pseudo-random sequence,
+	// as described in RFC 9562 section 6.2, Method 1.
+	// The 6th byte contains the version and partially rand_a data.
+	// We will lose the most significant bites from the clockSeq (with SetVersion), but it is ok,
+	// we need the least significant that contains the counter to ensure the monotonic property
 	binary.BigEndian.PutUint16(u[6:8], clockSeq) // set rand_a with clock seq which is random and monotonic
 
-	//override first 4bits of u[6].
+	// override first 4bits of u[6].
 	u.SetVersion(V7)
 
-	//set rand_b 64bits of pseudo-random bits (first 2 will be overridden)
+	// set rand_b 64bits of pseudo-random bits (first 2 will be overridden)
 	if _, err = io.ReadFull(g.rand, u[8:16]); err != nil {
 		return Nil, err
 	}
-	//override first 2 bits of byte[8] for the variant
+	// override first 2 bits of byte[8] for the variant
+	u.SetVariant(VariantRFC9562)
+
+	return u, nil
+}
+
+// GenerateBatchV7 creates a batch of k-sortable Version 7 UUIDs.
+//
+// Ensures strict monotonic ordering within the batch.
+//
+// Arguments:
+// - batchSize: Number of UUIDs to generate.
+//
+// Returns:
+// - []UUID: The generated UUIDs.
+// - error: If batch generation fails.
+
+func (g *MonotonicGen) GenerateBatchV7(batchSize int) ([]UUID, error) {
+	if batchSize <= 0 {
+		return nil, errors.New("batch size must be greater than zero")
+	}
+
+	uuids := make([]UUID, batchSize)
+
+	for i := 0; i < batchSize; i++ {
+		uuid, err := g.newMonotonicV7()
+		if err != nil {
+			return nil, err
+		}
+		uuids[i] = uuid
+	}
+	return uuids, nil
+}
+
+// newMonotonicV7 generates a Version 7 UUID with a monotonic counter for ordering.
+//
+// Returns:
+// - UUID: The generated UUID.
+// - error: If UUID generation fails.
+func (g *MonotonicGen) newMonotonicV7() (UUID, error) {
+	var u UUID
+
+	ms, clockSeq, err := g.getMonotonicClockSequence(true, g.epochFunc())
+	if err != nil {
+		return Nil, err
+	}
+
+	// set the timestamp (48 bits)
+	u[0] = byte(ms >> 40)
+	u[1] = byte(ms >> 32)
+	u[2] = byte(ms >> 24)
+	u[3] = byte(ms >> 16)
+	u[4] = byte(ms >> 8)
+	u[5] = byte(ms)
+
+	// set rand_a (clockSeq ensures monotonicity)
+	binary.BigEndian.PutUint16(u[6:8], clockSeq)
+
+	// override version and variant bits
+	u.SetVersion(V7)
+
+	// set rand_b (64 random bits)
+	if _, err := io.ReadFull(g.rand, u[8:16]); err != nil {
+		return Nil, err
+	}
 	u.SetVariant(VariantRFC9562)
 
 	return u, nil
@@ -432,6 +523,40 @@ func (g *Gen) getClockSequence(useUnixTSMs bool, atTime time.Time) (uint64, uint
 	g.lastTime = timeNow
 
 	return timeNow, g.clockSequence, nil
+}
+
+// getMonotonicClockSequence returns a timestamp and clock sequence to ensure
+// monotonic UUID generation, even when timestamps are identical.
+//
+// Arguments:
+// - useUnixTSMs: Whether to use millisecond precision for the timestamp.
+// - atTime: The reference time.
+//
+// Returns:
+// - uint64: The timestamp.
+// - uint16: The clock sequence.
+// - error: If the sequence generation fails.
+func (g *MonotonicGen) getMonotonicClockSequence(useUnixTSMs bool, atTime time.Time) (uint64, uint16, error) {
+	g.monotonicMutex.Lock()
+	defer g.monotonicMutex.Unlock()
+
+	var timeNow uint64
+	if useUnixTSMs {
+		timeNow = uint64(atTime.UnixMilli())
+	} else {
+		timeNow = g.getEpoch(atTime)
+	}
+
+	// If timeNow <= lastTime, increment the counter to ensure monotonicity.
+	if timeNow <= g.lastTime {
+		g.monotonicCounter++
+	} else {
+		g.monotonicCounter = 0
+	}
+
+	g.lastTime = timeNow
+
+	return timeNow, g.monotonicCounter, nil
 }
 
 // Returns the hardware address.
