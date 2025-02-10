@@ -89,7 +89,6 @@ const (
 type Timestamp uint64
 
 const _100nsPerSecond = 10000000
-const _100nsPerMillisecond = 10000
 
 // Time returns the time.Time representation of a Timestamp.
 //
@@ -151,7 +150,7 @@ func TimestampFromV7(u UUID) (Timestamp, error) {
 	// type stores 100-nanosecond increments since 1582-10-15 00:00:00.
 	// This conversion multiplies ms by 10,000 to get 100-ns chunks and adds
 	// the difference between October 1582 and January 1970.
-	tsNanos := epochStart + (t * _100nsPerMillisecond)
+	tsNanos := epochStart + (t * 10000)
 	return Timestamp(tsNanos), nil
 }
 
