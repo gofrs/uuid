@@ -284,7 +284,7 @@ func TestTimestampFromV7(t *testing.T) {
 	}
 }
 
-func TestTimestampMinMaxV167(t *testing.T) {
+func TestMinMaxTimestamps(t *testing.T) {
 	tests := []struct {
 		u    UUID
 		want time.Time
@@ -359,8 +359,6 @@ var timestampBenchmarkSink Timestamp
 var timeBenchmarkSink time.Time
 
 func BenchmarkTimestampFrom(b *testing.B) {
-	b.ReportAllocs()
-
 	var err error
 	numbUUIDs := 1000
 	if testing.Short() {
@@ -400,8 +398,6 @@ func BenchmarkTimestampFrom(b *testing.B) {
 }
 
 func BenchmarkTimestampTime(b *testing.B) {
-	b.ReportAllocs()
-
 	var err error
 	numbUUIDs := 1000
 	if testing.Short() {

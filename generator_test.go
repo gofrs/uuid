@@ -1101,7 +1101,6 @@ func TestDefaultHWAddrFunc(t *testing.T) {
 }
 
 func BenchmarkGenerator(b *testing.B) {
-	b.ReportAllocs()
 	b.Run("NewV1", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			NewV1()
