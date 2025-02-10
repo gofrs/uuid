@@ -147,10 +147,10 @@ func TimestampFromV7(u UUID) (Timestamp, error) {
 		(int64(u[4]) << 8) |
 		int64(u[5])
 
-	// UUIDv7 stores MS since 1979-01-01 00:00:00, but the Timestamp
+	// UUIDv7 stores MS since 1970-01-01 00:00:00, but the Timestamp
 	// type stores 100-nanosecond increments since 1582-10-15 00:00:00.
 	// This conversion multiplies ms by 10,000 to get 100-ns chunks and adds
-	// the difference between October 1582 and January 1979.
+	// the difference between October 1582 and January 1970.
 	tsNanos := epochStart + (t * _100nsPerMillisecond)
 	return Timestamp(tsNanos), nil
 }
