@@ -262,11 +262,14 @@ func TestTimestampFromV7(t *testing.T) {
 		want    Timestamp
 		wanterr bool
 	}{
+		// These non-V7 versions should not be able to be provided to TimestampFromV7
 		{u: Must(NewV1()), wanterr: true},
+		{u: NewV3(NamespaceDNS, "a.example.com"), wanterr: true},
 		// v7 is unix_ts_ms, so zero value time is unix epoch
 		{u: Must(FromString("00000000-0000-7000-0000-000000000000")), want: 122192928000000000},
 		{u: Must(FromString("018a8fec-3ced-7164-995f-93c80cbdc575")), want: 139139245386050000},
-		{u: Must(FromString("ffffffff-ffff-7fff-ffff-ffffffffffff")), want: Timestamp(epochStart + time.UnixMilli((1<<48)-1).UTC().UnixNano()/100)},
+		// Calculated as `(1<<48)-1` milliseconds, times 100 ns per ms, plus epoch offset from 1970 to 1582.
+		{u: Must(FromString("ffffffff-ffff-7fff-bfff-ffffffffffff")), want: 2936942695106550000},
 	}
 	for _, tt := range tests {
 		got, err := TimestampFromV7(tt.u)
@@ -277,6 +280,56 @@ func TestTimestampFromV7(t *testing.T) {
 
 		case tt.want != got:
 			t.Errorf("TimestampFromV7(%v) got %v, want %v", tt.u, got, tt.want)
+		}
+	}
+}
+
+func TestMinMaxTimestamps(t *testing.T) {
+	tests := []struct {
+		u    UUID
+		want time.Time
+	}{
+
+		// v1 min and max
+		{u: Must(FromString("00000000-0000-1000-8000-000000000000")), want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},           //1582-10-15 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-1fff-bfff-ffffffffffff")), want: time.Date(5236, 3, 31, 21, 21, 00, 684697500, time.UTC)}, //5236-03-31 21:21:00 (UTC)
+
+		// v6 min and max
+		{u: Must(FromString("00000000-0000-6000-8000-000000000000")), want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},           //1582-10-15 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-6fff-bfff-ffffffffffff")), want: time.Date(5236, 3, 31, 21, 21, 00, 684697500, time.UTC)}, //5236-03-31 21:21:00 (UTC)
+
+		// v7 min and max
+		{u: Must(FromString("00000000-0000-7000-8000-000000000000")), want: time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)},            //1970-01-01 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-7fff-bfff-ffffffffffff")), want: time.Date(10889, 8, 2, 5, 31, 50, 655000000, time.UTC)}, //10889-08-02 5:31:50.655 (UTC)
+	}
+	for _, tt := range tests {
+		var got Timestamp
+		var err error
+		var functionName string
+
+		switch tt.u.Version() {
+		case V1:
+			functionName = "TimestampFromV1"
+			got, err = TimestampFromV1(tt.u)
+		case V6:
+			functionName = "TimestampFromV6"
+			got, err = TimestampFromV6(tt.u)
+		case V7:
+			functionName = "TimestampFromV7"
+			got, err = TimestampFromV7(tt.u)
+		}
+
+		if err != nil {
+			t.Errorf(functionName+"(%v) got error %v, want %v", tt.u, err, tt.want)
+		}
+
+		tm, err := got.Time()
+		if err != nil {
+			t.Errorf(functionName+"(%v) got error %v, want %v", tt.u, err, tt.want)
+		}
+
+		if !tt.want.Equal(tm) {
+			t.Errorf(functionName+"(%v) got %v, want %v", tt.u, tm.UTC(), tt.want)
 		}
 	}
 }
@@ -299,4 +352,91 @@ func BenchmarkFormat(b *testing.B) {
 			}
 		})
 	}
+}
+
+var uuidBenchmarkSink UUID
+var timestampBenchmarkSink Timestamp
+var timeBenchmarkSink time.Time
+
+func BenchmarkTimestampFrom(b *testing.B) {
+	var err error
+	numbUUIDs := 1000
+	if testing.Short() {
+		numbUUIDs = 10
+	}
+
+	funcs := []struct {
+		name      string
+		create    func() (UUID, error)
+		timestamp func(UUID) (Timestamp, error)
+	}{
+		{"v1", NewV1, TimestampFromV1},
+		{"v6", NewV6, TimestampFromV6},
+		{"v7", NewV7, TimestampFromV7},
+	}
+
+	for _, fns := range funcs {
+		b.Run(fns.name, func(b *testing.B) {
+			// Make sure we don't just encode the same string over and over again as that will hit memory caches unrealistically
+			uuids := make([]UUID, numbUUIDs)
+			for i := 0; i < numbUUIDs; i++ {
+				uuids[i] = Must(fns.create())
+				if !testing.Short() {
+					time.Sleep(1 * time.Millisecond)
+				}
+			}
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				timestampBenchmarkSink, err = fns.timestamp(uuids[i%numbUUIDs])
+
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkTimestampTime(b *testing.B) {
+	var err error
+	numbUUIDs := 1000
+	if testing.Short() {
+		numbUUIDs = 10
+	}
+
+	funcs := []struct {
+		name      string
+		create    func() (UUID, error)
+		timestamp func(UUID) (Timestamp, error)
+	}{
+		{"v1", NewV1, TimestampFromV1},
+		{"v6", NewV6, TimestampFromV6},
+		{"v7", NewV7, TimestampFromV7},
+	}
+
+	for _, fns := range funcs {
+		b.Run(fns.name, func(b *testing.B) {
+			// Make sure we don't just encode the same string over and over again as that will hit memory caches unrealistically
+			uuids := make([]UUID, numbUUIDs)
+			timestamps := make([]Timestamp, numbUUIDs)
+			for i := 0; i < numbUUIDs; i++ {
+				uuids[i] = Must(fns.create())
+				timestamps[i], err = fns.timestamp(uuids[i])
+				if err != nil {
+					b.Fatal(err)
+				}
+				if !testing.Short() {
+					time.Sleep(1 * time.Millisecond)
+				}
+			}
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				timeBenchmarkSink, err = timestamps[i%numbUUIDs].Time()
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+
 }

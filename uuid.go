@@ -82,8 +82,10 @@ const (
 )
 
 // Timestamp is the count of 100-nanosecond intervals since 00:00:00.00,
-// 15 October 1582 within a V1 UUID. This type has no meaning for other
-// UUID versions since they don't have an embedded timestamp.
+// 15 October 1582 within a V1 or V6 UUID, or as a common intermediate
+// representation of the (Unix Millisecond) timestamp within a V7 UUID.
+// This type has no meaning for other UUID versions since they don't
+// have an embedded timestamp.
 type Timestamp uint64
 
 const _100nsPerSecond = 10000000
@@ -144,8 +146,11 @@ func TimestampFromV7(u UUID) (Timestamp, error) {
 		(int64(u[4]) << 8) |
 		int64(u[5])
 
-	// convert to format expected by Timestamp
-	tsNanos := epochStart + time.UnixMilli(t).UTC().UnixNano()/100
+	// UUIDv7 stores MS since 1970-01-01 00:00:00, but the Timestamp
+	// type stores 100-nanosecond increments since 1582-10-15 00:00:00.
+	// This conversion multiplies ms by 10,000 to get 100-ns chunks and adds
+	// the difference between October 1582 and January 1970.
+	tsNanos := epochStart + (t * 10000)
 	return Timestamp(tsNanos), nil
 }
 
