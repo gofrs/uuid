@@ -342,6 +342,22 @@ func BenchmarkFromString(b *testing.B) {
 	})
 }
 
+var FromBytesOrNilResult UUID
+
+func BenchmarkFromBytesOrNil(b *testing.B) {
+	b.Run("valid", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			FromBytesOrNilResult = FromBytesOrNil(codecTestData)
+		}
+	})
+
+	b.Run("empty", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			FromBytesOrNilResult = FromBytesOrNil([]byte{})
+		}
+	})
+}
+
 func BenchmarkUnmarshalText(b *testing.B) {
 	b.Run("canonical", func(b *testing.B) {
 		text := []byte(Must(FromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8")).String())
