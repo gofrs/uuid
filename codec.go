@@ -63,38 +63,8 @@ func fromHexChar(c byte) byte {
 // Parse (string input) and UnmarshalText ([]byte input) can delegate to this
 // single implementation, eliminating code duplication.
 //
-// Supported formats examples:
-//
-//	"6ba7b810-9dad-11d1-80b4-00c04fd430c8"           // canonical
-//	"6ba7b8109dad11d180b400c04fd430c8"              // hash-like
-//	"{6ba7b810-9dad-11d1-80b4-00c04fd430c8}"        // braced canonical
-//	"{6ba7b8109dad11d180b400c04fd430c8}"            // braced hash-like
-//	"urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8" // URN canonical
-//	"urn:uuid:6ba7b8109dad11d180b400c04fd430c8"     // URN hash-like
-//
-// ABNF for the accepted text representation (adapted from RFC-9562):
-//
-//	URN       = "urn"
-//	UUID-NID  = "uuid"
-//
-//	hexidg    = DIGIT / %x61-66 / %x41-46 ; 0-9 / a-f / A-F
-//	hexoct    = 2hexidg
-//	2hexoct   = hexoct hexoct
-//	4hexoct   = 2hexoct 2hexoct
-//	6hexoct   = 4hexoct 2hexoct
-//	12hexoct  = 6hexoct 6hexoct
-//
-//	hashlike  = 12hexoct
-//	canonical = 4hexoct "-" 2hexoct "-" 2hexoct "-" 2hexoct "-" 6hexoct
-//
-//	plain     = canonical / hashlike
-//	braced    = "{" plain "}"
-//	urn       = URN ":" UUID-NID ":" plain
-//
-//	uuid      = plain / braced / urn
-//
-// The parser accepts any of the above `uuid` productions and returns
-// ErrInvalidFormat or ErrIncorrectFormatInString on mismatch.
+// Supported formats and ABNF grammar are documented on UnmarshalText; refer
+// there for full details. This helper simply enforces those rules.
 func parseBytes(b []byte, u *UUID) error {
 	// Fast-path: ensure we don't accidentally mutate the caller's slice.
 	// We will only reslice, never modify the underlying bytes.
@@ -181,9 +151,39 @@ func (u UUID) MarshalText() ([]byte, error) {
 	return buf[:], nil
 }
 
-// UnmarshalText implements the encoding.TextUnmarshaler interface and
-// delegates all validation to parseBytes. Refer to parseBytes for the full
-// list of supported formats and the ABNF grammar.
+// UnmarshalText implements the encoding.TextUnmarshaler interface.
+//
+// Supported text representations (examples):
+//
+//	6ba7b810-9dad-11d1-80b4-00c04fd430c8           // canonical
+//	6ba7b8109dad11d180b400c04fd430c8              // hash-like
+//	{6ba7b810-9dad-11d1-80b4-00c04fd430c8}        // braced canonical
+//	{6ba7b8109dad11d180b400c04fd430c8}            // braced hash-like
+//	urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8 // URN canonical
+//	urn:uuid:6ba7b8109dad11d180b400c04fd430c8     // URN hash-like
+//
+// ABNF for supported UUID text representation (adapted from RFC-9562):
+//
+//	URN       = "urn"
+//	UUID-NID  = "uuid"
+//
+//	hexidg    = DIGIT / %x61-66 / %x41-46 ; 0-9 / a-f / A-F
+//	hexoct    = 2hexidg
+//	2hexoct   = hexoct hexoct
+//	4hexoct   = 2hexoct 2hexoct
+//	6hexoct   = 4hexoct 2hexoct
+//	12hexoct  = 6hexoct 6hexoct
+//
+//	hashlike  = 12hexoct
+//	canonical = 4hexoct "-" 2hexoct "-" 2hexoct "-" 2hexoct "-" 6hexoct
+//
+//	plain     = canonical / hashlike
+//	braced    = "{" plain "}"
+//	urn       = URN ":" UUID-NID ":" plain
+//
+//	uuid      = plain / braced / urn
+//
+// The function delegates validation to internal parseBytes().
 func (u *UUID) UnmarshalText(b []byte) error {
 	return parseBytes(b, u)
 }
