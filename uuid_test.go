@@ -31,6 +31,7 @@ import (
 
 func TestUUID(t *testing.T) {
 	t.Run("IsNil", testUUIDIsNil)
+	t.Run("IsZero", testUUIDIsZero)
 	t.Run("Bytes", testUUIDBytes)
 	t.Run("String", testUUIDString)
 	t.Run("Version", testUUIDVersion)
@@ -46,6 +47,24 @@ func testUUIDIsNil(t *testing.T) {
 	want := true
 	if got != want {
 		t.Errorf("%v.IsNil() = %t, want %t", u, got, want)
+	}
+}
+
+func testUUIDIsZero(t *testing.T) {
+	// Test zero UUID
+	u := UUID{}
+	got := u.IsZero()
+	want := true
+	if got != want {
+		t.Errorf("%v.IsZero() = %t, want %t", u, got, want)
+	}
+
+	// Test non-zero UUID
+	nonZeroUUID := NamespaceDNS // Use a known non-zero UUID
+	got = nonZeroUUID.IsZero()
+	want = false
+	if got != want {
+		t.Errorf("%v.IsZero() = %t, want %t", nonZeroUUID, got, want)
 	}
 }
 

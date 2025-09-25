@@ -192,6 +192,11 @@ func (u UUID) IsNil() bool {
 	return u == Nil
 }
 
+// IsZero returns if the UUID is equal to the zero UUID (same as IsNil)
+func (u UUID) IsZero() bool {
+	return u == Nil
+}
+
 // Version returns the algorithm version used to generate the UUID.
 func (u UUID) Version() byte {
 	return u[6] >> 4
