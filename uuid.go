@@ -192,7 +192,9 @@ func (u UUID) IsNil() bool {
 	return u == Nil
 }
 
-// IsZero returns if the UUID is equal to the zero UUID (same as IsNil)
+// IsZero returns if the UUID is equal to the zero UUID (same as IsNil).
+// This method is provided to satisfy the bsoncodec.Zeroer interface for MongoDB
+// omitzero tag support. See: https://github.com/gofrs/uuid/issues/224
 func (u UUID) IsZero() bool {
 	return u == Nil
 }
