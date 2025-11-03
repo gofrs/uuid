@@ -28,6 +28,7 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -434,7 +435,27 @@ func (g *Gen) getClockSequence(useUnixTSMs bool, atTime time.Time) (uint64, uint
 	// Clock didn't change since last UUID generation.
 	// Should increase clock sequence.
 	if timeNow <= g.lastTime {
-		g.clockSequence++
+		// Increment the 14-bit clock sequence (RFC-9562 §6.1).
+		// Only the lower 14 bits are encoded in the UUID; the upper two
+		// bits are overridden by the Variant in SetVariant().
+		g.clockSequence = (g.clockSequence + 1) & 0x3fff
+
+		// If the sequence wrapped (back to zero) we MUST wait for the
+		// timestamp to advance to preserve uniqueness (see RFC-9562 §6.1).
+		if g.clockSequence == 0 {
+			for {
+				if useUnixTSMs {
+					timeNow = uint64(g.epochFunc().UnixMilli())
+				} else {
+					timeNow = g.getEpoch(g.epochFunc())
+				}
+				if timeNow > g.lastTime {
+					break
+				}
+				// Yield the processor briefly to avoid busy-waiting.
+				runtime.Gosched()
+			}
+		}
 	}
 	g.lastTime = timeNow
 
