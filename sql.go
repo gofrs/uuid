@@ -30,8 +30,22 @@ import (
 var _ driver.Valuer = UUID{}
 var _ sql.Scanner = (*UUID)(nil)
 
+// SQLEnableBinaryValue controls the format of the UUID returned by
+// UUID.Value().
+// By default, UUID.Value() returns the UUID as a string.
+// If SQLEnableBinaryValue is set to true, UUID.Value() returns
+// the UUID as a 16-byte slice.
+var SQLEnableBinaryValue = false
+
 // Value implements the driver.Valuer interface.
+// By default, it returns the UUID as a string.
+// If the package variable SQLEnableBinaryValue is set to true,
+// it returns the UUID as a 16-byte slice.
 func (u UUID) Value() (driver.Value, error) {
+	if SQLEnableBinaryValue {
+		return u.Bytes(), nil
+	}
+
 	return u.String(), nil
 }
 

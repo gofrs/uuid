@@ -22,13 +22,17 @@
 package uuid
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"testing"
 )
 
 func TestSQL(t *testing.T) {
-	t.Run("Value", testSQLValue)
+	t.Run("Value", func(t *testing.T) {
+		t.Run("String", testSQLValueString)
+		t.Run("Binary", testSQLValueBinary)
+	})
 	t.Run("Scan", func(t *testing.T) {
 		t.Run("Binary", testSQLScanBinary)
 		t.Run("String", testSQLScanString)
@@ -38,7 +42,7 @@ func TestSQL(t *testing.T) {
 	})
 }
 
-func testSQLValue(t *testing.T) {
+func testSQLValueString(t *testing.T) {
 	v, err := codecTestUUID.Value()
 	if err != nil {
 		t.Fatal(err)
@@ -48,6 +52,24 @@ func testSQLValue(t *testing.T) {
 		t.Fatalf("Value() returned %T, want string", v)
 	}
 	if want := codecTestUUID.String(); got != want {
+		t.Errorf("Value() == %q, want %q", got, want)
+	}
+}
+
+func testSQLValueBinary(t *testing.T) {
+	SQLEnableBinaryValue = true
+	defer func() {
+		SQLEnableBinaryValue = false
+	}()
+	v, err := codecTestUUID.Value()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, ok := v.([]byte)
+	if !ok {
+		t.Fatalf("Value() returned %T, want []byte", v)
+	}
+	if want := codecTestUUID.Bytes(); !bytes.Equal(got, want) {
 		t.Errorf("Value() == %q, want %q", got, want)
 	}
 }
