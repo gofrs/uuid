@@ -436,13 +436,13 @@ func (g *Gen) NewV8(customA []byte, customB []byte, customC []byte) (UUID, error
 
 	// Validate input lengths
 	if len(customA) != 6 {
-		return Nil, fmt.Errorf("%w: customA must be exactly 6 bytes, got %d", ErrV8FieldLength, len(customA))
+		return Nil, fmt.Errorf("%w: customA must be exactly 6 bytes (48 bits), got %d", ErrV8FieldLength, len(customA))
 	}
 	if len(customB) != 2 {
-		return Nil, fmt.Errorf("%w: customB must be exactly 2 bytes, got %d", ErrV8FieldLength, len(customB))
+		return Nil, fmt.Errorf("%w: customB must be exactly 2 bytes (16 bits, where 12 bits are used per RFC9562), got %d", ErrV8FieldLength, len(customB))
 	}
 	if len(customC) != 8 {
-		return Nil, fmt.Errorf("%w: customC must be exactly 8 bytes, got %d", ErrV8FieldLength, len(customC))
+		return Nil, fmt.Errorf("%w: customC must be exactly 8 bytes (64 bits, where 62 bits are used per RFC9562), got %d", ErrV8FieldLength, len(customC))
 	}
 
 	// Copy customA (48 bits = 6 bytes) into u[0:6]

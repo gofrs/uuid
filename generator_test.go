@@ -1225,7 +1225,7 @@ func makeTestNewV8CustomFields() func(t *testing.T) {
 		// customB: 12 bits -> lower 12 bits of u[6:8] (high 4 bits are version)
 		// customC: 62 bits -> lower 62 bits of u[8:16] (high 2 bits are variant)
 		customA := []byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
-		customB := []byte{0x01, 0x23} // Only lower 12 bits: 0x123
+		customB := []byte{0x01, 0x23} // 0x0123; only the lower 12 bits (0x123) are used
 		customC := []byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88}
 
 		u, err := NewV8(customA, customB, customC)
@@ -1259,7 +1259,7 @@ func makeTestNewV8CustomFields() func(t *testing.T) {
 		// Actually the implementation masks u[8] before setting variant
 		// So we expect the lower 6 bits of customC[0] to be in u[8], then variant added
 		gotC8Lower := u[8] & 0x3f
-		if gotC8Lower != (0x11 & 0x3f) {
+		if gotC8Lower != wantC8 {
 			t.Errorf("customC[0] lower bits incorrect: got %x, want %x", gotC8Lower, wantC8)
 		}
 		if !bytes.Equal(u[9:16], customC[1:8]) {
