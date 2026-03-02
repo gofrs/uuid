@@ -26,6 +26,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -98,6 +99,18 @@ func NewV7AtTime(atTime time.Time) (UUID, error) {
 	return DefaultGenerator.NewV7AtTime(atTime)
 }
 
+// NewV8 returns a custom UUID based on user-provided data as specified in RFC 9562.
+// The UUID is constructed from three fields:
+//   - customA: exactly 6 bytes (48 bits) - occupies bits 0-47
+//   - customB: exactly 2 bytes (only lower 12 bits used) - occupies bits 52-63
+//   - customC: exactly 8 bytes (only lower 62 bits used) - occupies bits 66-127
+//
+// Version (4 bits) and variant (2 bits) are set automatically.
+// Returns ErrV8FieldLength if any field is not exactly the required length.
+func NewV8(customA []byte, customB []byte, customC []byte) (UUID, error) {
+	return DefaultGenerator.NewV8(customA, customB, customC)
+}
+
 // Generator provides an interface for generating UUIDs.
 type Generator interface {
 	NewV1() (UUID, error)
@@ -109,6 +122,7 @@ type Generator interface {
 	NewV6AtTime(time.Time) (UUID, error)
 	NewV7() (UUID, error)
 	NewV7AtTime(time.Time) (UUID, error)
+	NewV8([]byte, []byte, []byte) (UUID, error)
 }
 
 // Gen is a reference UUID generator based on the specifications laid out in
@@ -398,6 +412,55 @@ func (g *Gen) NewV7AtTime(atTime time.Time) (UUID, error) {
 		return Nil, err
 	}
 	//override first 2 bits of byte[8] for the variant
+	u.SetVariant(VariantRFC9562)
+
+	return u, nil
+}
+
+// NewV8 returns a UUID based on user-provided data as specified in RFC 9562.
+// See the package-level NewV8 function for documentation.
+func (g *Gen) NewV8(customA []byte, customB []byte, customC []byte) (UUID, error) {
+	var u UUID
+	/* https://datatracker.ietf.org/doc/html/rfc9562#name-uuid-version-8
+	    0                   1                   2                   3
+	    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |                          custom_a                            |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |          custom_a             |  ver  |       custom_b        |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |var|                        custom_c                          |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+	   |                          custom_c                            |
+	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
+
+	// Validate input lengths
+	if len(customA) != 6 {
+		return Nil, fmt.Errorf("%w: customA must be exactly 6 bytes, got %d", ErrV8FieldLength, len(customA))
+	}
+	if len(customB) != 2 {
+		return Nil, fmt.Errorf("%w: customB must be exactly 2 bytes, got %d", ErrV8FieldLength, len(customB))
+	}
+	if len(customC) != 8 {
+		return Nil, fmt.Errorf("%w: customC must be exactly 8 bytes, got %d", ErrV8FieldLength, len(customC))
+	}
+
+	// Copy customA (48 bits = 6 bytes) into u[0:6]
+	copy(u[0:6], customA)
+
+	// Copy customB (12 bits from 2 bytes) into u[6:8]
+	// The high 4 bits of u[6] will be overwritten by version
+	bVal := uint16(customB[0])<<8 | uint16(customB[1])
+	bVal &= 0x0fff // only lower 12 bits
+	u[6] = byte(bVal >> 8)
+	u[7] = byte(bVal)
+
+	// Copy customC (62 bits from 8 bytes) into u[8:16]
+	// The high 2 bits of u[8] will be overwritten by variant
+	copy(u[8:16], customC)
+	u[8] &= 0x3f // mask off high 2 bits that will be used for variant
+
+	u.SetVersion(V8)
 	u.SetVariant(VariantRFC9562)
 
 	return u, nil

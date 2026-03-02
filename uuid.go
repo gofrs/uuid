@@ -60,7 +60,7 @@ const (
 	V5      // Version 5 (namespace name-based)
 	V6      // Version 6 (k-sortable timestamp and random data, field-compatible with v1)
 	V7      // Version 7 (k-sortable timestamp and random data)
-	_       // Version 8 (k-sortable timestamp, meant for custom implementations) [not implemented]
+	V8      // Version 8 (custom UUID implementations)
 )
 
 // UUID layout variants.
