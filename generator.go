@@ -449,11 +449,8 @@ func (g *Gen) NewV8(customA []byte, customB []byte, customC []byte) (UUID, error
 	copy(u[0:6], customA)
 
 	// Copy customB (12 bits from 2 bytes) into u[6:8]
-	// The high 4 bits of u[6] will be overwritten by version
-	bVal := uint16(customB[0])<<8 | uint16(customB[1])
-	bVal &= 0x0fff // only lower 12 bits
-	u[6] = byte(bVal >> 8)
-	u[7] = byte(bVal)
+	u[6] = customB[0] & 0x0f  // mask high 4 bits (version goes here)
+	u[7] = customB[1]
 
 	// Copy customC (62 bits from 8 bytes) into u[8:16]
 	// The high 2 bits of u[8] will be overwritten by variant
