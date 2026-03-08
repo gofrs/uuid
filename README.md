@@ -21,6 +21,7 @@ This package supports the following UUID versions:
 * Version 5, based on SHA-1 hashing of a named value
 * Version 6, a k-sortable id based on timestamp, and field-compatible with v1
 * Version 7, a k-sortable id based on timestamp
+* Version 8, for custom UUID implementations
 
 ## Project History
 
