@@ -452,8 +452,8 @@ func (g *Gen) getClockSequence(useUnixTSMs bool, atTime time.Time) (uint64, uint
 				if timeNow > g.lastTime {
 					break
 				}
-				// Yield the processor briefly to avoid busy-waiting.
-				runtime.Gosched()
+				// Sleep briefly to avoid busy-waiting and reduce CPU usage.
+				time.Sleep(time.Microsecond)
 			}
 		}
 	}
