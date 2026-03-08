@@ -28,7 +28,6 @@ import (
 	"encoding/binary"
 	"io"
 	"net"
-	"runtime"
 	"sync"
 	"time"
 )
