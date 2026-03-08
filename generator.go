@@ -448,14 +448,13 @@ func (g *Gen) NewV8(customA []byte, customB []byte, customC []byte) (UUID, error
 	// Copy customA (48 bits = 6 bytes) into u[0:6]
 	copy(u[0:6], customA)
 
-	// Copy customB (12 bits from 2 bytes) into u[6:8]
-	u[6] = customB[0] & 0x0f  // mask high 4 bits (version goes here)
-	u[7] = customB[1]
+	// Copy customB (16 bits from 2 bytes) into u[6:8]
+	// the high 4 bits of u[6] will be overwritten by version
+	copy(u[6:8], customB)
 
 	// Copy customC (62 bits from 8 bytes) into u[8:16]
 	// The high 2 bits of u[8] will be overwritten by variant
 	copy(u[8:16], customC)
-	u[8] &= 0x3f // mask off high 2 bits that will be used for variant
 
 	u.SetVersion(V8)
 	u.SetVariant(VariantRFC9562)
