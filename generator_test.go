@@ -54,6 +54,7 @@ func testNewV1(t *testing.T) {
 	t.Run("MissingNetworkFaultyRand", testNewV1MissingNetworkFaultyRand)
 	t.Run("MissingNetworkFaultyRandWithOptions", testNewV1MissingNetworkFaultyRandWithOptions)
 	t.Run("AtSpecificTime", testNewV1AtTime)
+	t.Run("AtSpecificTimeClockSequenceWrap", testNewV1AtTimeClockSequenceWrap)
 }
 
 func TestNewGenWithHWAF(t *testing.T) {
@@ -270,6 +271,35 @@ func testNewV1AtTime(t *testing.T) {
 	}
 	if time2.Equal(atTime) {
 		t.Errorf("extracted time is incorrect: was %v, expected %v", time1, atTime)
+	}
+}
+
+func testNewV1AtTimeClockSequenceWrap(t *testing.T) {
+	atTime := time.Unix(0, 1000000)
+
+	g := NewGenWithOptions(
+		WithHWAddrFunc(func() (net.HardwareAddr, error) {
+			return net.HardwareAddr{0, 1, 2, 3, 4, 5}, nil
+		}),
+		WithEpochFunc(func() time.Time {
+			return time.Unix(0, 2000000)
+		}),
+		WithRandomReader(bytes.NewReader([]byte{0x00, 0x00})),
+	)
+
+	const total = 0x3fff + 3
+	seen := make(map[UUID]int, total)
+
+	for i := 0; i < total; i++ {
+		u, err := g.NewV1AtTime(atTime)
+		if err != nil {
+			t.Fatalf("g.NewV1AtTime() err = %v, want <nil>", err)
+		}
+
+		if prev, ok := seen[u]; ok {
+			t.Fatalf("duplicate UUID at iteration %d (previous %d): %s", i, prev, u)
+		}
+		seen[u] = i
 	}
 }
 
