@@ -1,6 +1,7 @@
 package uuid
 
 import (
+	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -66,5 +67,59 @@ func TestV1UniqueConcurrent(t *testing.T) {
 				t.Fatalf("duplicate UUIDs detected: %d", dupCount)
 			}
 		})
+	}
+}
+
+// TestV1UniqueConcurrentStress runs a heavier contention scenario that mirrors
+// reported real-world duplication checks (2000 goroutines x 1000 UUIDs).
+// It is opt-in to keep default CI runs fast.
+func TestV1UniqueConcurrentStress(t *testing.T) {
+	if os.Getenv("UUID_STRESS_V1") != "1" {
+		t.Skip("set UUID_STRESS_V1=1 to run this stress test")
+	}
+
+	gen := NewGen()
+
+	const (
+		goroutines  = 2000
+		uuidsPerGor = 1000
+	)
+
+	var (
+		wg       sync.WaitGroup
+		mu       sync.Mutex
+		seen     = make(map[UUID]struct{}, goroutines*uuidsPerGor)
+		dupCount uint32
+		genErr   uint32
+	)
+
+	for i := 0; i < goroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < uuidsPerGor; j++ {
+				u, err := gen.NewV1()
+				if err != nil {
+					atomic.AddUint32(&genErr, 1)
+					return
+				}
+				mu.Lock()
+				if _, exists := seen[u]; exists {
+					dupCount++
+				} else {
+					seen[u] = struct{}{}
+				}
+				mu.Unlock()
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	if genErr > 0 {
+		t.Fatalf("%d errors occurred during UUID generation", genErr)
+	}
+	if dupCount > 0 {
+		t.Fatalf("duplicate UUIDs detected: %d", dupCount)
 	}
 }

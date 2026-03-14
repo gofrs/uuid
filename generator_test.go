@@ -303,6 +303,91 @@ func testNewV1AtTimeClockSequenceWrap(t *testing.T) {
 	}
 }
 
+func TestGetClockSequence(t *testing.T) {
+	t.Run("WrapUsesFreshEpoch", testGetClockSequenceWrapUsesFreshEpoch)
+	t.Run("WrapUsesFreshUnixTSMs", testGetClockSequenceWrapUsesFreshUnixTSMs)
+}
+
+func testGetClockSequenceWrapUsesFreshEpoch(t *testing.T) {
+	atTime := time.Unix(0, 1000000)
+	advancedTime := time.Unix(0, 2000000)
+	epochCalls := 0
+
+	g := NewGenWithOptions(
+		WithEpochFunc(func() time.Time {
+			epochCalls++
+
+			return advancedTime
+		}),
+		WithRandomReader(bytes.NewReader([]byte{0x3f, 0xff})),
+	)
+
+	firstTime, firstSeq, err := g.getClockSequence(false, atTime)
+	if err != nil {
+		t.Fatalf("g.getClockSequence(false, atTime) err = %v, want <nil>", err)
+	}
+	if got, want := firstSeq, uint16(0x3fff); got != want {
+		t.Fatalf("clock sequence = %d, want %d", got, want)
+	}
+	if got, want := firstTime, g.getEpoch(atTime); got != want {
+		t.Fatalf("time = %d, want %d", got, want)
+	}
+
+	secondTime, secondSeq, err := g.getClockSequence(false, atTime)
+	if err != nil {
+		t.Fatalf("g.getClockSequence(false, atTime) err = %v, want <nil>", err)
+	}
+	if got, want := secondSeq, uint16(0); got != want {
+		t.Fatalf("clock sequence = %d, want %d", got, want)
+	}
+	if got, want := secondTime, g.getEpoch(advancedTime); got != want {
+		t.Fatalf("time = %d, want %d", got, want)
+	}
+	if epochCalls == 0 {
+		t.Fatal("expected epochFunc() to be called when sequence wraps")
+	}
+}
+
+func testGetClockSequenceWrapUsesFreshUnixTSMs(t *testing.T) {
+	atTime := time.UnixMilli(1000)
+	advancedTime := time.UnixMilli(2000)
+	epochCalls := 0
+
+	g := NewGenWithOptions(
+		WithEpochFunc(func() time.Time {
+			epochCalls++
+
+			return advancedTime
+		}),
+		WithRandomReader(bytes.NewReader([]byte{0x3f, 0xff})),
+	)
+
+	firstTime, firstSeq, err := g.getClockSequence(true, atTime)
+	if err != nil {
+		t.Fatalf("g.getClockSequence(true, atTime) err = %v, want <nil>", err)
+	}
+	if got, want := firstSeq, uint16(0x3fff); got != want {
+		t.Fatalf("clock sequence = %d, want %d", got, want)
+	}
+	if got, want := firstTime, uint64(atTime.UnixMilli()); got != want {
+		t.Fatalf("time = %d, want %d", got, want)
+	}
+
+	secondTime, secondSeq, err := g.getClockSequence(true, atTime)
+	if err != nil {
+		t.Fatalf("g.getClockSequence(true, atTime) err = %v, want <nil>", err)
+	}
+	if got, want := secondSeq, uint16(0); got != want {
+		t.Fatalf("clock sequence = %d, want %d", got, want)
+	}
+	if got, want := secondTime, uint64(advancedTime.UnixMilli()); got != want {
+		t.Fatalf("time = %d, want %d", got, want)
+	}
+	if epochCalls == 0 {
+		t.Fatal("expected epochFunc() to be called when sequence wraps")
+	}
+}
+
 func testNewV1FaultyRandWithOptions(t *testing.T) {
 	g := NewGenWithOptions(WithRandomReader(&faultyReader{
 		readToFail: 0, // fail immediately
@@ -1159,6 +1244,64 @@ func BenchmarkGenerator(b *testing.B) {
 	b.Run("NewV7", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			NewV7()
+		}
+	})
+	b.Run("ClockSequenceWrapUTC", func(b *testing.B) {
+		atTime := time.Unix(0, 1000000)
+		advancedTime := time.Unix(0, 2000000)
+
+		g := NewGenWithOptions(
+			WithEpochFunc(func() time.Time {
+				return advancedTime
+			}),
+			WithRandomReader(bytes.NewReader([]byte{0x00, 0x00})),
+		)
+		_, _, err := g.getClockSequence(false, atTime)
+		if err != nil {
+			b.Fatalf("g.getClockSequence(false, atTime) err = %v, want <nil>", err)
+		}
+		staleTime := g.getEpoch(atTime)
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			g.storageMutex.Lock()
+			g.lastTime = staleTime
+			g.clockSequence = 0x3fff
+			g.storageMutex.Unlock()
+
+			_, _, err = g.getClockSequence(false, atTime)
+			if err != nil {
+				b.Fatalf("g.getClockSequence(false, atTime) err = %v, want <nil>", err)
+			}
+		}
+	})
+	b.Run("ClockSequenceWrapUnixTSMs", func(b *testing.B) {
+		atTime := time.UnixMilli(1000)
+		advancedTime := time.UnixMilli(2000)
+
+		g := NewGenWithOptions(
+			WithEpochFunc(func() time.Time {
+				return advancedTime
+			}),
+			WithRandomReader(bytes.NewReader([]byte{0x00, 0x00})),
+		)
+		_, _, err := g.getClockSequence(true, atTime)
+		if err != nil {
+			b.Fatalf("g.getClockSequence(true, atTime) err = %v, want <nil>", err)
+		}
+		staleTime := uint64(atTime.UnixMilli())
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			g.storageMutex.Lock()
+			g.lastTime = staleTime
+			g.clockSequence = 0x3fff
+			g.storageMutex.Unlock()
+
+			_, _, err = g.getClockSequence(true, atTime)
+			if err != nil {
+				b.Fatalf("g.getClockSequence(true, atTime) err = %v, want <nil>", err)
+			}
 		}
 	})
 }
