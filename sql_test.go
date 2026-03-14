@@ -88,7 +88,7 @@ func testSQLScanText(t *testing.T) {
 }
 
 func testSQLScanUnsupported(t *testing.T) {
-	unsupported := []interface{}{
+	unsupported := []any{
 		true,
 		42,
 	}

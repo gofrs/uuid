@@ -765,7 +765,7 @@ func makeTestNewV7Basic10000000() func(t *testing.T) {
 
 		g := NewGen()
 
-		for i := 0; i < 10000000; i++ {
+		for range 10000000 {
 			u, err := g.NewV7()
 			if err != nil {
 				t.Fatal(err)

@@ -46,7 +46,7 @@ func TestFromBytes(t *testing.T) {
 	})
 	t.Run("Invalid", func(t *testing.T) {
 		var short [][]byte
-		for i := 0; i < len(codecTestData); i++ {
+		for i := range codecTestData {
 			short = append(short, codecTestData[:i])
 		}
 		var long [][]byte
@@ -298,7 +298,7 @@ func TestFromHexChar(t *testing.T) {
 		for _, c := range []byte(hextable + strings.ToUpper(hextable)) {
 			skip[c] = true
 		}
-		for i := 0; i < 256; i++ {
+		for i := range 256 {
 			c := byte(i)
 			if !skip[c] {
 				v := fromHexChar(c)
