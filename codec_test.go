@@ -313,31 +313,31 @@ func TestFromHexChar(t *testing.T) {
 var stringBenchmarkSink string
 
 func BenchmarkString(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		stringBenchmarkSink = codecTestUUID.String()
 	}
 }
 
 func BenchmarkFromBytes(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		FromBytes(codecTestData)
+	for range b.N {
+		_, _ = FromBytes(codecTestData)
 	}
 }
 
 func BenchmarkFromString(b *testing.B) {
 	b.Run("canonical", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			FromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+		for range b.N {
+			_, _ = FromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 		}
 	})
 	b.Run("urn", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			FromString("urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+		for range b.N {
+			_, _ = FromString("urn:uuid:6ba7b810-9dad-11d1-80b4-00c04fd430c8")
 		}
 	})
 	b.Run("braced", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			FromString("{6ba7b810-9dad-11d1-80b4-00c04fd430c8}")
+		for range b.N {
+			_, _ = FromString("{6ba7b810-9dad-11d1-80b4-00c04fd430c8}")
 		}
 	})
 }
@@ -346,13 +346,13 @@ var FromBytesOrNilResult UUID
 
 func BenchmarkFromBytesOrNil(b *testing.B) {
 	b.Run("valid", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			FromBytesOrNilResult = FromBytesOrNil(codecTestData)
 		}
 	})
 
 	b.Run("empty", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			FromBytesOrNilResult = FromBytesOrNil([]byte{})
 		}
 	})
@@ -366,7 +366,7 @@ func BenchmarkUnmarshalText(b *testing.B) {
 			b.Fatal(err)
 		}
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			_ = u.UnmarshalText(text)
 		}
 	})
@@ -377,7 +377,7 @@ func BenchmarkUnmarshalText(b *testing.B) {
 			b.Fatal(err)
 		}
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			_ = u.UnmarshalText(text)
 		}
 	})
@@ -388,27 +388,27 @@ func BenchmarkUnmarshalText(b *testing.B) {
 			b.Fatal(err)
 		}
 		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for range b.N {
 			_ = u.UnmarshalText(text)
 		}
 	})
 }
 
 func BenchmarkMarshalBinary(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		codecTestUUID.MarshalBinary()
+	for range b.N {
+		_, _ = codecTestUUID.MarshalBinary()
 	}
 }
 
 func BenchmarkMarshalText(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		codecTestUUID.MarshalText()
+	for range b.N {
+		_, _ = codecTestUUID.MarshalText()
 	}
 }
 
 func BenchmarkParseV4(b *testing.B) {
 	const text = "f52a747a-983f-45f7-90b5-e84d70f470dd"
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		var u UUID
 		if err := u.Parse(text); err != nil {
 			b.Fatal(err)

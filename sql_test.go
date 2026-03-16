@@ -328,13 +328,13 @@ func BenchmarkNullMarshalJSON(b *testing.B) {
 		}
 		n := NullUUID{UUID: u, Valid: true}
 		for i := 0; i < b.N; i++ {
-			n.MarshalJSON()
+			_, _ = n.MarshalJSON()
 		}
 	})
 	b.Run("Invalid", func(b *testing.B) {
 		n := NullUUID{Valid: false}
 		for i := 0; i < b.N; i++ {
-			n.MarshalJSON()
+			_, _ = n.MarshalJSON()
 		}
 	})
 }
@@ -352,14 +352,14 @@ func BenchmarkNullUnmarshalJSON(b *testing.B) {
 	b.Run("Valid", func(b *testing.B) {
 		var u NullUUID
 		for i := 0; i < b.N; i++ {
-			u.UnmarshalJSON(data)
+			_ = u.UnmarshalJSON(data)
 		}
 	})
 	b.Run("Invalid", func(b *testing.B) {
 		invalid := []byte("null")
 		var n NullUUID
 		for i := 0; i < b.N; i++ {
-			n.UnmarshalJSON(invalid)
+			_ = n.UnmarshalJSON(invalid)
 		}
 	})
 }
