@@ -51,25 +51,25 @@ func TestParseErrors(t *testing.T) {
 		uuidStr  string
 		expected string
 	}{
-		{ // 34 chars - With brackets
+		{ // 34 chars - With braces
 			function: "parse",
 			uuidStr:  "..................................",
-			expected: "uuid: incorrect UUID format in string \"..................................\"",
+			expected: "uuid: incorrect UUID format in string: invalid braces",
 		},
 		{ // 41 chars - urn:uuid:
 			function: "parse",
 			uuidStr:  "123456789................................",
-			expected: "uuid: incorrect UUID format in string \"123456789\"",
+			expected: "uuid: incorrect UUID format in string: invalid URN prefix",
 		},
 		{ // other
 			function: "parse",
 			uuidStr:  "....",
-			expected: "uuid: incorrect UUID length 4 in string \"....\"",
+			expected: "uuid: incorrect UUID length",
 		},
 		{ // 36 chars - canonical, but not correct format
 			function: "parse",
 			uuidStr:  "....................................",
-			expected: "uuid: incorrect UUID format in string \"....................................\"",
+			expected: "uuid: incorrect UUID format in string: dashes were not in expected positions",
 		},
 		{ // 36 chars - canonical, invalid data
 			function: "parse",
@@ -118,7 +118,7 @@ func TestParseErrors(t *testing.T) {
 func TestUnmarshalBinaryError(t *testing.T) {
 	id := UUID{}
 	b := make([]byte, 33)
-	expectedErr := "uuid: UUID must be exactly 16 bytes long, got 33 bytes"
+	expectedErr := "uuid: UUID must be exactly 16 bytes long"
 	err := id.UnmarshalBinary([]byte(b))
 	if err == nil {
 		t.Error("expected an error")
