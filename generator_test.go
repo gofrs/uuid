@@ -880,7 +880,7 @@ func makeTestNewV7Basic10000000() func(t *testing.T) {
 
 		g := NewGen()
 
-		for i := 0; i < 10000000; i++ {
+		for range 10000000 {
 			u, err := g.NewV7()
 			if err != nil {
 				t.Fatal(err)
@@ -1218,32 +1218,32 @@ func TestDefaultHWAddrFunc(t *testing.T) {
 func BenchmarkGenerator(b *testing.B) {
 	b.Run("NewV1", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			NewV1()
+			_, _ = NewV1()
 		}
 	})
 	b.Run("NewV3", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			NewV3(NamespaceDNS, "www.example.com")
+			_ = NewV3(NamespaceDNS, "www.example.com")
 		}
 	})
 	b.Run("NewV4", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			NewV4()
+			_, _ = NewV4()
 		}
 	})
 	b.Run("NewV5", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			NewV5(NamespaceDNS, "www.example.com")
+			_ = NewV5(NamespaceDNS, "www.example.com")
 		}
 	})
 	b.Run("NewV6", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			NewV6()
+			_, _ = NewV6()
 		}
 	})
 	b.Run("NewV7", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			NewV7()
+			_, _ = NewV7()
 		}
 	})
 	b.Run("ClockSequenceWrapUTC", func(b *testing.B) {
