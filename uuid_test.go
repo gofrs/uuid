@@ -373,7 +373,6 @@ func BenchmarkFormat(b *testing.B) {
 	}
 }
 
-var uuidBenchmarkSink UUID
 var timestampBenchmarkSink Timestamp
 var timeBenchmarkSink time.Time
 
