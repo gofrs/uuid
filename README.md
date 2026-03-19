@@ -49,7 +49,7 @@ deficiencies.
 
 ## Requirements
 
-This package requires Go 1.19 or later
+This package requires Go 1.25 or later
 
 ## Usage
 
@@ -89,5 +89,5 @@ func main() {
 
 ## References
 
-* [RFC-9562](https://tools.ietf.org/html/rfc9562) (replaces RFC-4122)
-* [DCE 1.1: Authentication and Security Services](http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01)
+- [RFC-9562](https://tools.ietf.org/html/rfc9562) (replaces RFC-4122)
+- [DCE 1.1: Authentication and Security Services](http://pubs.opengroup.org/onlinepubs/9696989899/chap5.htm#tagcjh_08_02_01_01)
