@@ -40,6 +40,7 @@ func TestGenerator(t *testing.T) {
 	t.Run("NewV5", testNewV5)
 	t.Run("NewV6", testNewV6)
 	t.Run("NewV7", testNewV7)
+	t.Run("NewV8", testNewV8)
 }
 
 func testNewV1(t *testing.T) {
@@ -1173,4 +1174,174 @@ func testErrCheck(t *testing.T, name string, errContains string, err error) bool
 	}
 
 	return true
+}
+
+func testNewV8(t *testing.T) {
+	t.Run("Basic", makeTestNewV8Basic())
+	t.Run("VersionAndVariant", makeTestNewV8VersionAndVariant())
+	t.Run("CustomFields", makeTestNewV8CustomFields())
+	t.Run("InvalidLength", makeTestNewV8InvalidLength())
+}
+
+func makeTestNewV8Basic() func(t *testing.T) {
+	return func(t *testing.T) {
+		customA := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}
+		customB := []byte{0x07, 0x08}
+		customC := []byte{0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}
+
+		u, err := NewV8(customA, customB, customC)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if u == Nil {
+			t.Error("UUID is nil")
+		}
+	}
+}
+
+func makeTestNewV8VersionAndVariant() func(t *testing.T) {
+	return func(t *testing.T) {
+		customA := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06}
+		customB := []byte{0x07, 0x08}
+		customC := []byte{0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10}
+
+		u, err := NewV8(customA, customB, customC)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got, want := u.Version(), V8; got != want {
+			t.Errorf("got version %d, want %d", got, want)
+		}
+		if got, want := u.Variant(), VariantRFC9562; got != want {
+			t.Errorf("got variant %d, want %d", got, want)
+		}
+	}
+}
+
+func makeTestNewV8CustomFields() func(t *testing.T) {
+	return func(t *testing.T) {
+		// Test that custom data is correctly placed in the UUID
+		// customA: 48 bits = 6 bytes -> u[0:6]
+		// customB: 12 bits -> lower 12 bits of u[6:8] (high 4 bits are version)
+		// customC: 62 bits -> lower 62 bits of u[8:16] (high 2 bits are variant)
+		customA := []byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
+		customB := []byte{0x01, 0x23} // 0x0123; only the lower 12 bits (0x123) are used
+		customC := []byte{0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88}
+
+		u, err := NewV8(customA, customB, customC)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Check customA bytes
+		if !bytes.Equal(u[0:6], customA) {
+			t.Errorf("customA mismatch: got %x, want %x", u[0:6], customA)
+		}
+
+		// Check version is set correctly (high nibble of byte 6)
+		if u[6]>>4 != V8 {
+			t.Errorf("version bits incorrect: got %d, want %d", u[6]>>4, V8)
+		}
+
+		// Check customB lower 12 bits (low nibble of u[6] and all of u[7])
+		bLow := (uint16(u[6]&0x0f) << 8) | uint16(u[7])
+		if bLow != 0x123 {
+			t.Errorf("customB bits incorrect: got %x, want %x", bLow, 0x123)
+		}
+
+		// Check variant is set correctly (high 2 bits of byte 8)
+		if (u[8] >> 6) != 0x02 {
+			t.Errorf("variant bits incorrect: got %x, want %x", u[8]>>6, 0x02)
+		}
+
+		// Check customC lower 62 bits are preserved (excluding variant bits)
+		wantC8 := (customC[0] & 0x3f) // variant overwrites top 2 bits
+		// Actually the implementation masks u[8] before setting variant
+		// So we expect the lower 6 bits of customC[0] to be in u[8], then variant added
+		gotC8Lower := u[8] & 0x3f
+		if gotC8Lower != wantC8 {
+			t.Errorf("customC[0] lower bits incorrect: got %x, want %x", gotC8Lower, wantC8)
+		}
+		if !bytes.Equal(u[9:16], customC[1:8]) {
+			t.Errorf("customC[1:8] mismatch: got %x, want %x", u[9:16], customC[1:8])
+		}
+	}
+}
+
+func makeTestNewV8InvalidLength() func(t *testing.T) {
+	return func(t *testing.T) {
+		// Test that incorrect lengths return errors
+		tests := []struct {
+			name    string
+			customA []byte
+			customB []byte
+			customC []byte
+			errMsg  string
+		}{
+			{
+				name:    "customA too short",
+				customA: []byte{0x01, 0x02}, // 2 bytes instead of 6
+				customB: []byte{0x01, 0x23},
+				customC: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08},
+				errMsg:  "customA must be exactly 6 bytes",
+			},
+			{
+				name:    "customA too long",
+				customA: []byte{0xFF, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06}, // 8 bytes
+				customB: []byte{0x01, 0x23},
+				customC: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08},
+				errMsg:  "customA must be exactly 6 bytes",
+			},
+			{
+				name:    "customB too short",
+				customA: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
+				customB: []byte{0x01}, // 1 byte instead of 2
+				customC: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08},
+				errMsg:  "customB must be exactly 2 bytes",
+			},
+			{
+				name:    "customB too long",
+				customA: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
+				customB: []byte{0xFF, 0x01, 0x23}, // 3 bytes
+				customC: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08},
+				errMsg:  "customB must be exactly 2 bytes",
+			},
+			{
+				name:    "customC too short",
+				customA: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
+				customB: []byte{0x01, 0x23},
+				customC: []byte{0x01, 0x02}, // 2 bytes instead of 8
+				errMsg:  "customC must be exactly 8 bytes",
+			},
+			{
+				name:    "customC too long",
+				customA: []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06},
+				customB: []byte{0x01, 0x23},
+				customC: []byte{0xFF, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, // 10 bytes
+				errMsg:  "customC must be exactly 8 bytes",
+			},
+			{
+				name:    "all empty",
+				customA: nil,
+				customB: nil,
+				customC: nil,
+				errMsg:  "customA must be exactly 6 bytes",
+			},
+		}
+
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				_, err := NewV8(tc.customA, tc.customB, tc.customC)
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !errors.Is(err, ErrV8FieldLength) {
+					t.Errorf("expected ErrV8FieldLength, got %v", err)
+				}
+				if !strings.Contains(err.Error(), tc.errMsg) {
+					t.Errorf("error message %q should contain %q", err.Error(), tc.errMsg)
+				}
+			})
+		}
+	}
 }

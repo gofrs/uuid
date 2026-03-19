@@ -15,12 +15,13 @@ and parsing of UUIDs in different formats.
 
 This package supports the following UUID versions:
 
-- Version 1, based on timestamp and MAC address
-- Version 3, based on MD5 hashing of a named value
-- Version 4, based on random numbers
-- Version 5, based on SHA-1 hashing of a named value
-- Version 6, a k-sortable id based on timestamp, and field-compatible with v1
-- Version 7, a k-sortable id based on timestamp
+* Version 1, based on timestamp and MAC address
+* Version 3, based on MD5 hashing of a named value
+* Version 4, based on random numbers
+* Version 5, based on SHA-1 hashing of a named value
+* Version 6, a k-sortable id based on timestamp, and field-compatible with v1
+* Version 7, a k-sortable id based on timestamp
+* Version 8, for custom UUID implementations
 
 ## Project History
 
