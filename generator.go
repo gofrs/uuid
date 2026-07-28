@@ -490,10 +490,37 @@ func (g *Gen) getClockSequence(useUnixTSMs bool, atTime time.Time) (uint64, uint
 	} else {
 		timeNow = g.getEpoch(atTime)
 	}
+	now := func() uint64 {
+		epoch := g.epochFunc()
+		if useUnixTSMs {
+			return uint64(epoch.UnixMilli())
+		}
+
+		return g.getEpoch(epoch)
+	}
+
+	// Calls can arrive with stale atTime values (captured before acquiring the
+	// lock). Clamp backwards timestamps to the latest emitted one to avoid
+	// reusing older timestamp + clock-sequence pairs after sequence wrap.
+	if timeNow < g.lastTime {
+		timeNow = g.lastTime
+	}
 	// Clock didn't change since last UUID generation.
 	// Should increase clock sequence.
 	if timeNow <= g.lastTime {
-		g.clockSequence++
+		// Increment the 14-bit clock sequence (RFC-9562 §6.1).
+		// Only the lower 14 bits are encoded in the UUID; the upper two
+		// bits are overridden by the Variant in SetVariant().
+		g.clockSequence = (g.clockSequence + 1) & 0x3fff
+
+		// If the sequence wrapped (back to zero) we MUST wait for the
+		// timestamp to advance to preserve uniqueness (see RFC-9562 §6.1).
+		if g.clockSequence == 0 {
+			for ; timeNow <= g.lastTime; timeNow = now() {
+				// Sleep briefly to avoid busy-waiting and reduce CPU usage.
+				time.Sleep(time.Microsecond)
+			}
+		}
 	}
 	g.lastTime = timeNow
 
