@@ -1047,7 +1047,7 @@ func makeTestNewV7BorrowIsBounded() func(t *testing.T) {
 
 		const (
 			count  = 50000
-			atMs   = 1645557742000
+			atMs   = int64(1645557742000)
 			usable = maxV7Counter - v7CounterSeedMask // increments guaranteed within a tick
 		)
 
@@ -1135,7 +1135,7 @@ func makeTestNewV7MixedWithV1() func(t *testing.T) {
 			t.Skip("skipping test in short mode.")
 		}
 
-		const atMs = 1645557742000
+		const atMs = int64(1645557742000)
 
 		g := NewGenWithOptions(WithEpochFunc(func() time.Time {
 			return time.UnixMilli(atMs)
