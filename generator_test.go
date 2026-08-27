@@ -56,6 +56,7 @@ func testNewV1(t *testing.T) {
 	t.Run("MissingNetworkFaultyRand", testNewV1MissingNetworkFaultyRand)
 	t.Run("MissingNetworkFaultyRandWithOptions", testNewV1MissingNetworkFaultyRandWithOptions)
 	t.Run("AtSpecificTime", testNewV1AtTime)
+	t.Run("AtTimeOutsideUnixNanoRange", makeTestAtTimeOutsideUnixNanoRange(newV1AtTime))
 }
 
 func TestNewGenWithHWAF(t *testing.T) {
@@ -227,6 +228,65 @@ func testNewV1MissingNetworkFaultyRandWithOptions(t *testing.T) {
 		t.Errorf("did not error on faulty reader and missing network, got %v", u)
 	}
 }
+
+// makeTestAtTimeOutsideUnixNanoRange covers times outside what time.Time.UnixNano
+// is defined for. The 60-bit timestamp field reaches the year 5236, so those
+// instants are representable and must come back unchanged; only a time the field
+// itself cannot hold is pinned to the nearest end, as NewV7AtTime does.
+func makeTestAtTimeOutsideUnixNanoRange(gen func(time.Time) (UUID, error)) func(t *testing.T) {
+	return func(t *testing.T) {
+		for _, tt := range []struct {
+			name   string
+			atTime time.Time
+			want   time.Time
+		}{
+			{
+				name:   "LastInstantUnixNanoCanHold",
+				atTime: time.Date(2262, 4, 11, 23, 47, 16, 0, time.UTC),
+				want:   time.Date(2262, 4, 11, 23, 47, 16, 0, time.UTC),
+			},
+			{
+				name:   "OnePastUnixNanoRange",
+				atTime: time.Date(2262, 4, 11, 23, 47, 17, 0, time.UTC),
+				want:   time.Date(2262, 4, 11, 23, 47, 17, 0, time.UTC),
+			},
+			{
+				name:   "WellPastUnixNanoRange",
+				atTime: time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC),
+				want:   time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC),
+			},
+			{
+				name:   "BeforeTimestampRange",
+				atTime: time.Date(1000, 1, 1, 0, 0, 0, 0, time.UTC),
+				want:   time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC),
+			},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				u, err := gen(tt.atTime)
+				if err != nil {
+					t.Fatal(err)
+				}
+				ts, err := TimestampFromV1(u)
+				if err != nil {
+					ts, err = TimestampFromV6(u)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				got, err := ts.Time()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !got.UTC().Equal(tt.want.UTC()) {
+					t.Errorf("got %v, want %v (drift %v)", got.UTC(), tt.want.UTC(), got.UTC().Sub(tt.want.UTC()))
+				}
+			})
+		}
+	}
+}
+
+func newV1AtTime(t time.Time) (UUID, error) { return NewGen().NewV1AtTime(t) }
+func newV6AtTime(t time.Time) (UUID, error) { return NewGen().NewV6AtTime(t) }
 
 func testNewV1AtTime(t *testing.T) {
 	atTime := time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
@@ -474,6 +534,7 @@ func testNewV6(t *testing.T) {
 	t.Run("ShortRandomReadWithOptions", testNewV6ShortRandomReadWithOptions)
 	t.Run("KSortable", testNewV6KSortable)
 	t.Run("AtSpecificTime", testNewV6AtTime)
+	t.Run("AtTimeOutsideUnixNanoRange", makeTestAtTimeOutsideUnixNanoRange(newV6AtTime))
 }
 
 func testNewV6Basic(t *testing.T) {
