@@ -256,6 +256,16 @@ func makeTestAtTimeOutsideUnixNanoRange(gen func(time.Time) (UUID, error)) func(
 				want:   time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			{
+				name:   "LastInstantTheFieldCanHold",
+				atTime: time.Date(5236, 3, 31, 21, 21, 0, 684697500, time.UTC),
+				want:   time.Date(5236, 3, 31, 21, 21, 0, 684697500, time.UTC),
+			},
+			{
+				name:   "PastTimestampRange",
+				atTime: time.Date(6000, 1, 1, 0, 0, 0, 0, time.UTC),
+				want:   time.Date(5236, 3, 31, 21, 21, 0, 684697500, time.UTC),
+			},
+			{
 				name:   "BeforeTimestampRange",
 				atTime: time.Date(1000, 1, 1, 0, 0, 0, 0, time.UTC),
 				want:   time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC),
