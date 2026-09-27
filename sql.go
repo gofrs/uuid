@@ -82,9 +82,10 @@ func (u *NullUUID) Scan(src any) error {
 		return nil
 	}
 
-	// Delegate to UUID Scan function
-	u.Valid = true
-	return u.UUID.Scan(src)
+	// Delegate to UUID Scan function; Valid tracks success like UnmarshalJSON.
+	err := u.UUID.Scan(src)
+	u.Valid = (err == nil)
+	return err
 }
 
 var nullJSON = []byte("null")
