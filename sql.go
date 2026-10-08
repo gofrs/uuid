@@ -87,12 +87,10 @@ func (u *NullUUID) Scan(src any) error {
 	return u.UUID.Scan(src)
 }
 
-var nullJSON = []byte("null")
-
 // MarshalJSON marshals the NullUUID as null or the nested UUID
 func (u NullUUID) MarshalJSON() ([]byte, error) {
 	if !u.Valid {
-		return nullJSON, nil
+		return []byte("null"), nil
 	}
 	var buf [38]byte
 	buf[0] = '"'
