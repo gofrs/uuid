@@ -554,6 +554,13 @@ func (g *Gen) nextV7Sequence(ms uint64, clampBackwards bool) (uint64, uint16, er
 	// Still within the tick last encoded, either because the timestamp repeats
 	// or because it moved backwards and is being held at the last value.
 	if g.v7Counter >= maxV7Counter {
+		// The rollover below pushes the timestamp one tick ahead. Once it sits at
+		// the top of the 48-bit field that is not an option: the increment would
+		// wrap to 0 and produce UUIDs dated 1970, breaking the ordering this
+		// function promises and the pinning NewV7AtTime documents.
+		if g.v7LastMs >= maxV7Timestamp {
+			return 0, 0, fmt.Errorf("uuid: V7 timestamp space exhausted")
+		}
 		counter, err := g.seedV7Counter()
 		if err != nil {
 			return 0, 0, err
