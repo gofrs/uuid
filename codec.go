@@ -21,6 +21,8 @@
 
 package uuid
 
+import "strings"
+
 // FromBytes returns a UUID generated from the raw byte slice input.
 // It will return an error if the slice isn't 16 bytes long.
 func FromBytes(input []byte) (UUID, error) {
@@ -75,7 +77,7 @@ func parseBytes(b []byte, u *UUID) error {
 		}
 		b = b[1 : len(b)-1]
 	case 41, 45:
-		if string(b[:9]) != "urn:uuid:" {
+		if !strings.EqualFold(string(b[:9]), "urn:uuid:") {
 			return ErrInvalidURNPrefix
 		}
 		b = b[9:]
