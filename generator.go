@@ -171,9 +171,7 @@ type Generator interface {
 // to obfuscate their MAC address, and so we recommend using NewGen() to create
 // a new generator.
 type Gen struct {
-	clockSequenceOnce sync.Once
-	hardwareAddrOnce  sync.Once
-	storageMutex      sync.Mutex
+	storageMutex sync.Mutex
 
 	rand io.Reader
 
@@ -182,6 +180,13 @@ type Gen struct {
 	lastTime      uint64
 	clockSequence uint16
 	hardwareAddr  [6]byte
+
+	// clockSequenceSet and hardwareAddrSet record that the clock sequence and
+	// the node ID were initialized. They are only set once initialization
+	// succeeds, so a failed attempt is retried on the next call instead of
+	// leaving a zero value in place. Guarded by storageMutex.
+	clockSequenceSet bool
+	hardwareAddrSet  bool
 
 	// V7 keeps its own counter state, separate from the V1/V6 clock sequence:
 	// the two measure time in different units and the counters have different
@@ -585,20 +590,17 @@ func (g *Gen) seedV7Counter() (uint16, error) {
 // intervals since 00:00:00.00, 15 October 1582 (the date of Gregorian reform to
 // the Christian calendar).
 func (g *Gen) getClockSequence(atTime time.Time) (uint64, uint16, error) {
-	var err error
-	g.clockSequenceOnce.Do(func() {
-		buf := make([]byte, 2)
-		if _, err = io.ReadFull(g.rand, buf); err != nil {
-			return
-		}
-		g.clockSequence = binary.BigEndian.Uint16(buf)
-	})
-	if err != nil {
-		return 0, 0, err
-	}
-
 	g.storageMutex.Lock()
 	defer g.storageMutex.Unlock()
+
+	if !g.clockSequenceSet {
+		buf := make([]byte, 2)
+		if _, err := io.ReadFull(g.rand, buf); err != nil {
+			return 0, 0, err
+		}
+		g.clockSequence = binary.BigEndian.Uint16(buf)
+		g.clockSequenceSet = true
+	}
 
 	timeNow := g.getEpoch(atTime)
 	// Clock didn't change since last UUID generation.
@@ -613,25 +615,29 @@ func (g *Gen) getClockSequence(atTime time.Time) (uint64, uint16, error) {
 
 // Returns the hardware address.
 func (g *Gen) getHardwareAddr() ([]byte, error) {
-	var err error
-	g.hardwareAddrOnce.Do(func() {
-		var hwAddr net.HardwareAddr
-		if hwAddr, err = g.hwAddrFunc(); err == nil {
-			copy(g.hardwareAddr[:], hwAddr)
-			return
-		}
+	g.storageMutex.Lock()
+	defer g.storageMutex.Unlock()
 
-		// Initialize hardwareAddr randomly in case
-		// of real network interfaces absence.
-		if _, err = io.ReadFull(g.rand, g.hardwareAddr[:]); err != nil {
-			return
-		}
-		// Set multicast bit as recommended by RFC-9562
-		g.hardwareAddr[0] |= 0x01
-	})
-	if err != nil {
+	if g.hardwareAddrSet {
+		return g.hardwareAddr[:], nil
+	}
+
+	if hwAddr, err := g.hwAddrFunc(); err == nil {
+		copy(g.hardwareAddr[:], hwAddr)
+		g.hardwareAddrSet = true
+		return g.hardwareAddr[:], nil
+	}
+
+	// Initialize hardwareAddr randomly in case
+	// of real network interfaces absence.
+	var addr [6]byte
+	if _, err := io.ReadFull(g.rand, addr[:]); err != nil {
 		return []byte{}, err
 	}
+	// Set multicast bit as recommended by RFC-9562
+	addr[0] |= 0x01
+	g.hardwareAddr = addr
+	g.hardwareAddrSet = true
 	return g.hardwareAddr[:], nil
 }
 
