@@ -55,6 +55,8 @@ func testNewV1(t *testing.T) {
 	t.Run("MissingNetworkWithOptions", testNewV1MissingNetworkWithOptions)
 	t.Run("MissingNetworkFaultyRand", testNewV1MissingNetworkFaultyRand)
 	t.Run("MissingNetworkFaultyRandWithOptions", testNewV1MissingNetworkFaultyRandWithOptions)
+	t.Run("FaultyRandRetriesInit", testNewV1FaultyRandRetriesInit)
+	t.Run("MissingNetworkFaultyRandRetriesInit", testNewV1MissingNetworkFaultyRandRetriesInit)
 	t.Run("AtSpecificTime", testNewV1AtTime)
 }
 
@@ -225,6 +227,70 @@ func testNewV1MissingNetworkFaultyRandWithOptions(t *testing.T) {
 	u, err := g.NewV1()
 	if err == nil {
 		t.Errorf("did not error on faulty reader and missing network, got %v", u)
+	}
+}
+
+// switchReader fails every Read while fail is set and reads from crypto/rand
+// otherwise.
+type switchReader struct {
+	fail bool
+}
+
+func (r *switchReader) Read(dest []byte) (int, error) {
+	if r.fail {
+		return 0, errors.New("io: reader is faulty")
+	}
+	return rand.Read(dest)
+}
+
+// A failed clock sequence initialization must not count as done: every call
+// fails while the reader fails, and the first call after it recovers succeeds.
+func testNewV1FaultyRandRetriesInit(t *testing.T) {
+	r := &switchReader{fail: true}
+	g := NewGenWithOptions(
+		WithRandomReader(r),
+		WithHWAddrFunc(func() (net.HardwareAddr, error) {
+			return net.HardwareAddr{1, 2, 3, 4, 5, 6}, nil
+		}),
+	)
+	for i := 1; i <= 3; i++ {
+		if u, err := g.NewV1(); err == nil || u != Nil {
+			t.Fatalf("call %d: got (%v, %v), want (Nil, error)", i, u, err)
+		}
+	}
+	r.fail = false
+	u, err := g.NewV1()
+	if err != nil {
+		t.Fatalf("after the reader recovered: %v", err)
+	}
+	if got, want := u.Version(), V1; got != want {
+		t.Errorf("generated UUID with version %d, want %d", got, want)
+	}
+}
+
+// The same for the random node ID used when there is no hardware address: a
+// failed read must not leave an all-zero node ID that later calls accept.
+func testNewV1MissingNetworkFaultyRandRetriesInit(t *testing.T) {
+	r := &faultyReader{readToFail: 1} // clock sequence read succeeds, node ID read fails
+	g := NewGenWithOptions(
+		WithRandomReader(r),
+		WithHWAddrFunc(func() (net.HardwareAddr, error) {
+			return nil, errors.New("uuid: no hw address found")
+		}),
+	)
+	if u, err := g.NewV1(); err == nil {
+		t.Fatalf("first call: got %v, want error", u)
+	}
+	u, err := g.NewV1()
+	if err != nil {
+		t.Fatalf("second call: %v", err)
+	}
+	var zero [6]byte
+	if bytes.Equal(u[10:], zero[:]) {
+		t.Fatalf("second call used an all-zero node ID: %v", u)
+	}
+	if u[10]&0x01 == 0 {
+		t.Errorf("random node ID %x does not have the multicast bit set", u[10:])
 	}
 }
 
