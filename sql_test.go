@@ -125,6 +125,7 @@ func TestNullUUID(t *testing.T) {
 		t.Run("Nil", testNullUUIDMarshalJSONNil)
 		t.Run("Null", testNullUUIDMarshalJSONNull)
 		t.Run("Valid", testNullUUIDMarshalJSONValid)
+		t.Run("IndependentResult", testNullUUIDMarshalJSONIndependentResult)
 	})
 
 	t.Run("UnmarshalJSON", func(t *testing.T) {
@@ -253,6 +254,36 @@ func testNullUUIDMarshalJSONNull(t *testing.T) {
 
 	if dataStr != "null" {
 		t.Fatalf("(%#v).MarshalJSON value want: %s, got: %s", u, "null", dataStr)
+	}
+}
+
+func testNullUUIDMarshalJSONIndependentResult(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		value NullUUID
+	}{
+		{"null", NullUUID{}},
+		{"invalid nonzero UUID", NullUUID{UUID: codecTestUUID}},
+		{"valid", NullUUID{UUID: codecTestUUID, Valid: true}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data, err := tc.value.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := string(data)
+			// Restore the returned bytes so a failure cannot affect other tests.
+			t.Cleanup(func() { copy(data, want) })
+			data[0] = '!'
+
+			got, err := json.Marshal(tc.value)
+			if err != nil {
+				t.Fatalf("modifying a previous MarshalJSON result broke json.Marshal: %v", err)
+			}
+			if string(got) != want {
+				t.Fatalf("json.Marshal = %q, want %q", got, want)
+			}
+		})
 	}
 }
 
