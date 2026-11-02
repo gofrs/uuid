@@ -119,6 +119,7 @@ func TestNullUUID(t *testing.T) {
 		t.Run("Nil", testNullUUIDScanNil)
 		t.Run("Valid", testNullUUIDScanValid)
 		t.Run("UUID", testNullUUIDScanUUID)
+		t.Run("Malformed", testNullUUIDScanMalformed)
 	})
 
 	t.Run("MarshalJSON", func(t *testing.T) {
@@ -205,6 +206,23 @@ func testNullUUIDScanUUID(t *testing.T) {
 	}
 	if u.UUID != codecTestUUID {
 		t.Errorf("UUID == %v after Scan(%v), want %v", u.UUID, codecTestUUID, codecTestUUID)
+	}
+}
+
+func testNullUUIDScanMalformed(t *testing.T) {
+	u := NullUUID{Valid: true}
+	if err := u.Scan("not-a-uuid"); err == nil {
+		t.Fatal("NullUUID.Scan err = <nil>, want error")
+	}
+	if u.Valid {
+		t.Error("NullUUID is valid after Scan of malformed input")
+	}
+	v, err := u.Value()
+	if err != nil {
+		t.Errorf("NullUUID.Value err = %v, want <nil>", err)
+	}
+	if v != nil {
+		t.Errorf("NullUUID.Value = %v, want nil", v)
 	}
 }
 
