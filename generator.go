@@ -30,6 +30,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -184,9 +185,11 @@ type Gen struct {
 	// clockSequenceSet and hardwareAddrSet record that the clock sequence and
 	// the node ID were initialized. They are only set once initialization
 	// succeeds, so a failed attempt is retried on the next call instead of
-	// leaving a zero value in place. Guarded by storageMutex.
+	// leaving a zero value in place. clockSequenceSet is guarded by
+	// storageMutex. hardwareAddrSet is read without the lock, like the fast
+	// path of sync.Once, so NewV1 takes storageMutex only once per call.
 	clockSequenceSet bool
-	hardwareAddrSet  bool
+	hardwareAddrSet  atomic.Bool
 
 	// V7 keeps its own counter state, separate from the V1/V6 clock sequence:
 	// the two measure time in different units and the counters have different
@@ -615,16 +618,20 @@ func (g *Gen) getClockSequence(atTime time.Time) (uint64, uint16, error) {
 
 // Returns the hardware address.
 func (g *Gen) getHardwareAddr() ([]byte, error) {
+	if g.hardwareAddrSet.Load() {
+		return g.hardwareAddr[:], nil
+	}
+
 	g.storageMutex.Lock()
 	defer g.storageMutex.Unlock()
 
-	if g.hardwareAddrSet {
+	if g.hardwareAddrSet.Load() {
 		return g.hardwareAddr[:], nil
 	}
 
 	if hwAddr, err := g.hwAddrFunc(); err == nil {
 		copy(g.hardwareAddr[:], hwAddr)
-		g.hardwareAddrSet = true
+		g.hardwareAddrSet.Store(true)
 		return g.hardwareAddr[:], nil
 	}
 
@@ -637,7 +644,7 @@ func (g *Gen) getHardwareAddr() ([]byte, error) {
 	// Set multicast bit as recommended by RFC-9562
 	addr[0] |= 0x01
 	g.hardwareAddr = addr
-	g.hardwareAddrSet = true
+	g.hardwareAddrSet.Store(true)
 	return g.hardwareAddr[:], nil
 }
 
