@@ -236,11 +236,14 @@ func TestTimestampFromV1(t *testing.T) {
 		wanterr bool
 	}{
 		{u: Must(NewV4()), wanterr: true},
-		{u: Must(FromString("00000000-0000-1000-0000-000000000000")), want: 0},
+		{u: Must(FromString("00000000-0000-1000-8000-000000000000")), want: 0},
 		{u: Must(FromString("424f137e-a2aa-11e8-98d0-529269fb1459")), want: 137538640775418750},
-		{u: Must(FromString("ffffffff-ffff-1fff-ffff-ffffffffffff")), want: Timestamp(1<<60 - 1)},
+		{u: Must(FromString("ffffffff-ffff-1fff-bfff-ffffffffffff")), want: Timestamp(1<<60 - 1)},
 	}
 	for _, tt := range tests {
+		if !tt.wanterr {
+			checkUUIDVersionAndVariant(t, tt.u, V1)
+		}
 		got, goterr := TimestampFromV1(tt.u)
 		if tt.wanterr && goterr == nil {
 			t.Errorf("TimestampFromV1(%v) want error, got %v", tt.u, got)
@@ -257,12 +260,15 @@ func TestTimestampFromV6(t *testing.T) {
 		wanterr bool
 	}{
 		{u: Must(NewV1()), wanterr: true},
-		{u: Must(FromString("00000000-0000-6000-0000-000000000000")), want: 0},
+		{u: Must(FromString("00000000-0000-6000-8000-000000000000")), want: 0},
 		{u: Must(FromString("1ec06cff-e9b1-621c-8627-ba3fd7e551c9")), want: 138493178941215260},
-		{u: Must(FromString("ffffffff-ffff-6fff-ffff-ffffffffffff")), want: Timestamp(1<<60 - 1)},
+		{u: Must(FromString("ffffffff-ffff-6fff-bfff-ffffffffffff")), want: Timestamp(1<<60 - 1)},
 	}
 
 	for _, tt := range tests {
+		if !tt.wanterr {
+			checkUUIDVersionAndVariant(t, tt.u, V6)
+		}
 		got, err := TimestampFromV6(tt.u)
 
 		switch {
@@ -285,12 +291,15 @@ func TestTimestampFromV7(t *testing.T) {
 		{u: Must(NewV1()), wanterr: true},
 		{u: NewV3(NamespaceDNS, "a.example.com"), wanterr: true},
 		// v7 is unix_ts_ms, so zero value time is unix epoch
-		{u: Must(FromString("00000000-0000-7000-0000-000000000000")), want: 122192928000000000},
+		{u: Must(FromString("00000000-0000-7000-8000-000000000000")), want: 122192928000000000},
 		{u: Must(FromString("018a8fec-3ced-7164-995f-93c80cbdc575")), want: 139139245386050000},
 		// Calculated as `(1<<48)-1` milliseconds, times 10,000 (100-ns units per ms), plus epoch offset from 1970 to 1582.
 		{u: Must(FromString("ffffffff-ffff-7fff-bfff-ffffffffffff")), want: 2936942695106550000},
 	}
 	for _, tt := range tests {
+		if !tt.wanterr {
+			checkUUIDVersionAndVariant(t, tt.u, V7)
+		}
 		got, err := TimestampFromV7(tt.u)
 
 		switch {
@@ -305,28 +314,31 @@ func TestTimestampFromV7(t *testing.T) {
 
 func TestMinMaxTimestamps(t *testing.T) {
 	tests := []struct {
-		u    UUID
-		want time.Time
+		u       UUID
+		version byte
+		want    time.Time
 	}{
 
 		// v1 min and max
-		{u: Must(FromString("00000000-0000-1000-8000-000000000000")), want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},           //1582-10-15 0:00:00 (UTC)
-		{u: Must(FromString("ffffffff-ffff-1fff-bfff-ffffffffffff")), want: time.Date(5236, 3, 31, 21, 21, 00, 684697500, time.UTC)}, //5236-03-31 21:21:00 (UTC)
+		{u: Must(FromString("00000000-0000-1000-8000-000000000000")), version: V1, want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},           //1582-10-15 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-1fff-bfff-ffffffffffff")), version: V1, want: time.Date(5236, 3, 31, 21, 21, 00, 684697500, time.UTC)}, //5236-03-31 21:21:00 (UTC)
 
 		// v6 min and max
-		{u: Must(FromString("00000000-0000-6000-8000-000000000000")), want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},           //1582-10-15 0:00:00 (UTC)
-		{u: Must(FromString("ffffffff-ffff-6fff-bfff-ffffffffffff")), want: time.Date(5236, 3, 31, 21, 21, 00, 684697500, time.UTC)}, //5236-03-31 21:21:00 (UTC)
+		{u: Must(FromString("00000000-0000-6000-8000-000000000000")), version: V6, want: time.Date(1582, 10, 15, 0, 0, 0, 0, time.UTC)},           //1582-10-15 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-6fff-bfff-ffffffffffff")), version: V6, want: time.Date(5236, 3, 31, 21, 21, 00, 684697500, time.UTC)}, //5236-03-31 21:21:00 (UTC)
 
 		// v7 min and max
-		{u: Must(FromString("00000000-0000-7000-8000-000000000000")), want: time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)},            //1970-01-01 0:00:00 (UTC)
-		{u: Must(FromString("ffffffff-ffff-7fff-bfff-ffffffffffff")), want: time.Date(10889, 8, 2, 5, 31, 50, 655000000, time.UTC)}, //10889-08-02 5:31:50.655 (UTC)
+		{u: Must(FromString("00000000-0000-7000-8000-000000000000")), version: V7, want: time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)},            //1970-01-01 0:00:00 (UTC)
+		{u: Must(FromString("ffffffff-ffff-7fff-bfff-ffffffffffff")), version: V7, want: time.Date(10889, 8, 2, 5, 31, 50, 655000000, time.UTC)}, //10889-08-02 5:31:50.655 (UTC)
 	}
 	for _, tt := range tests {
+		checkUUIDVersionAndVariant(t, tt.u, tt.version)
+
 		var got Timestamp
 		var err error
 		var functionName string
 
-		switch tt.u.Version() {
+		switch tt.version {
 		case V1:
 			functionName = "TimestampFromV1"
 			got, err = TimestampFromV1(tt.u)
@@ -336,6 +348,8 @@ func TestMinMaxTimestamps(t *testing.T) {
 		case V7:
 			functionName = "TimestampFromV7"
 			got, err = TimestampFromV7(tt.u)
+		default:
+			t.Fatalf("unexpected test UUID version %d", tt.version)
 		}
 
 		if err != nil {
@@ -350,6 +364,16 @@ func TestMinMaxTimestamps(t *testing.T) {
 		if !tt.want.Equal(tm) {
 			t.Errorf(functionName+"(%v) got %v, want %v", tt.u, tm.UTC(), tt.want)
 		}
+	}
+}
+
+func checkUUIDVersionAndVariant(t *testing.T, u UUID, version byte) {
+	t.Helper()
+	if got := u.Version(); got != version {
+		t.Errorf("%v.Version() == %d, want %d", u, got, version)
+	}
+	if got, want := u.Variant(), VariantRFC9562; got != want {
+		t.Errorf("%v.Variant() == %d, want %d", u, got, want)
 	}
 }
 
