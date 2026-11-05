@@ -622,6 +622,12 @@ func (g *Gen) getHardwareAddr() ([]byte, error) {
 		return g.hardwareAddr[:], nil
 	}
 
+	return g.initHardwareAddr()
+}
+
+// initHardwareAddr sets the node ID under the lock. It checks again because
+// another goroutine may have set it while this one was waiting for the lock.
+func (g *Gen) initHardwareAddr() ([]byte, error) {
 	g.storageMutex.Lock()
 	defer g.storageMutex.Unlock()
 

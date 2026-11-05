@@ -57,6 +57,7 @@ func testNewV1(t *testing.T) {
 	t.Run("MissingNetworkFaultyRandWithOptions", testNewV1MissingNetworkFaultyRandWithOptions)
 	t.Run("FaultyRandRetriesInit", testNewV1FaultyRandRetriesInit)
 	t.Run("MissingNetworkFaultyRandRetriesInit", testNewV1MissingNetworkFaultyRandRetriesInit)
+	t.Run("NodeIDSetWhileWaitingForLock", testNewV1NodeIDSetWhileWaitingForLock)
 	t.Run("AtSpecificTime", testNewV1AtTime)
 }
 
@@ -291,6 +292,33 @@ func testNewV1MissingNetworkFaultyRandRetriesInit(t *testing.T) {
 	}
 	if u[10]&0x01 == 0 {
 		t.Errorf("random node ID %x does not have the multicast bit set", u[10:])
+	}
+}
+
+// A goroutine that finds the node ID unset and then waits for the lock must keep
+// the value set in the meantime, not read the hardware address again.
+func testNewV1NodeIDSetWhileWaitingForLock(t *testing.T) {
+	calls := 0
+	g := NewGenWithOptions(
+		WithHWAddrFunc(func() (net.HardwareAddr, error) {
+			calls++
+			return net.HardwareAddr{byte(calls), 2, 3, 4, 5, 6}, nil
+		}),
+	)
+	first, err := g.getHardwareAddr()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := bytes.Clone(first)
+	got, err := g.initHardwareAddr()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("node ID changed from %x to %x", want, got)
+	}
+	if calls != 1 {
+		t.Errorf("hardware address read %d times, want 1", calls)
 	}
 }
 
