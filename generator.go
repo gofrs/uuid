@@ -190,6 +190,14 @@ type Gen struct {
 	v7LastMs          uint64
 	v7Counter         uint16
 	v7Seeded          bool
+
+	// The method 3 generators keep their own state again, since rand_a
+	// means something different to them: a position inside the millisecond
+	// rather than a counter, so the two cannot share a last value. See
+	// v7precise.go.
+	v7pLastMs   uint64
+	v7pLastFrac uint16
+	v7pSeeded   bool
 }
 
 // GenOption is a function type that can be used to configure a Gen generator.
