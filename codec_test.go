@@ -523,3 +523,19 @@ func FuzzFromStringOrNilFunc(f *testing.F) {
 		// otherwise, allow to pass if no panic
 	})
 }
+
+func TestInvalidTextPreservesUUID(t *testing.T) {
+	original := FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+	for _, input := range []string{
+		"ffffffff-ffff-ffff-ffff-fffffffffffz",
+		"fffffffffffffffffffffffffffffffz",
+	} {
+		got := original
+		if err := got.UnmarshalText([]byte(input)); err == nil {
+			t.Fatalf("UnmarshalText(%q) succeeded", input)
+		}
+		if got != original {
+			t.Errorf("UnmarshalText(%q) changed UUID to %s", input, got)
+		}
+	}
+}
