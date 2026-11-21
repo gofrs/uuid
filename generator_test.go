@@ -711,6 +711,7 @@ func testNewV7(t *testing.T) {
 	t.Run("KSortable", makeTestNewV7KSortable())
 	t.Run("ClockSequence", makeTestNewV7ClockSequence())
 	t.Run("CounterRollover", makeTestNewV7CounterRollover())
+	t.Run("CounterExhaustedAtMaxTimestamp", makeTestNewV7CounterExhaustedAtMaxTimestamp())
 	t.Run("Sequential1M", makeTestNewV7Sequential1M())
 	t.Run("BorrowIsBounded", makeTestNewV7BorrowIsBounded())
 	t.Run("CounterReseedsOnNewTick", makeTestNewV7CounterReseedsOnNewTick())
@@ -1008,6 +1009,36 @@ func makeTestNewV7CounterRollover() func(t *testing.T) {
 	}
 }
 
+func makeTestNewV7CounterExhaustedAtMaxTimestamp() func(t *testing.T) {
+	return func(t *testing.T) {
+		atTime := time.UnixMilli(maxV7Timestamp)
+		// Seed the counter at zero and leave enough bytes for a rollover attempt.
+		random := bytes.NewReader(make([]byte, 2+8*(maxV7Counter+1)+10))
+		g := NewGenWithOptions(WithRandomReader(random))
+		for i := range maxV7Counter + 1 {
+			u, err := g.NewV7AtTime(atTime)
+			if err != nil {
+				t.Fatalf("NewV7AtTime at counter %d: %v", i, err)
+			}
+			if got := v7Counter(u); got != uint16(i) {
+				t.Fatalf("counter = %d, want %d", got, i)
+			}
+		}
+		u, err := g.NewV7AtTime(atTime)
+		if err == nil || u != Nil {
+			t.Fatalf("NewV7AtTime after counter exhaustion = (%v, %v), want (Nil, error)", u, err)
+		}
+
+		u, err = g.NewV7AtTime(atTime.Add(-time.Millisecond))
+		if err != nil {
+			t.Fatalf("NewV7AtTime at an earlier timestamp after exhaustion: %v", err)
+		}
+		if got := v7Counter(u); got != 0 {
+			t.Fatalf("counter at an earlier timestamp = %d, want 0", got)
+		}
+	}
+}
+
 // makeTestNewV7Sequential1M is the ordering check at load, against the real
 // clock so that counter rollovers, the reseeding that follows them and the clock
 // advancing on its own all interleave. Sorting strictly above the previous UUID
@@ -1251,6 +1282,8 @@ func makeTestNewV7AtTimeUnrepresentable() func(t *testing.T) {
 			{name: "ZeroTime", atTime: time.Time{}, want: 0},
 			{name: "BeforeUnixEpoch", atTime: time.Date(1969, 7, 20, 20, 17, 0, 0, time.UTC), want: 0},
 			{name: "AfterTimestampRange", atTime: time.Date(20000, 1, 1, 0, 0, 0, 0, time.UTC), want: maxV7Timestamp},
+			{name: "BeforeUnixMilliRange", atTime: time.Date(-500_000_000, 1, 1, 0, 0, 0, 0, time.UTC), want: 0},
+			{name: "AfterUnixMilliRange", atTime: time.Date(500_000_000, 1, 1, 0, 0, 0, 0, time.UTC), want: maxV7Timestamp},
 		} {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewGen()
