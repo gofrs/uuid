@@ -39,6 +39,7 @@ func TestUUID(t *testing.T) {
 	t.Run("SetVersion", testUUIDSetVersion)
 	t.Run("SetVariant", testUUIDSetVariant)
 	t.Run("Format", testUUIDFormat)
+	t.Run("FormatStringOptions", testUUIDFormatStringOptions)
 }
 
 func testUUIDIsNil(t *testing.T) {
@@ -179,6 +180,19 @@ func testUUIDFormat(t *testing.T) {
 		if tt.want != got {
 			t.Errorf(`Format("%s") got %s, want %s`, tt.f, got, tt.want)
 		}
+	}
+}
+
+func testUUIDFormatStringOptions(t *testing.T) {
+	u := Must(FromString("12345678-90ab-cdef-1234-567890abcdef"))
+	for _, format := range []string{"%40s", "%-40v", "%040s", "%.8s", "%.0v", "%12.4q", "%#q", "%-42.8q"} {
+		t.Run(format, func(t *testing.T) {
+			got := fmt.Sprintf(format, u)
+			want := fmt.Sprintf(format, u.String())
+			if got != want {
+				t.Errorf("Format(%q) = %q, want %q", format, got, want)
+			}
+		})
 	}
 }
 

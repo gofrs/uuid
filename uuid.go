@@ -258,7 +258,7 @@ func (u UUID) String() string {
 //
 // The behavior is as follows:
 // The 'x' and 'X' verbs output only the hex digits of the UUID, using a-f for 'x' and A-F for 'X'.
-// The 'v', '+v', 's' and 'q' verbs return the canonical RFC-9562 string representation.
+// The 'v', '+v', 's' and 'q' verbs format the canonical RFC-9562 representation as a string.
 // The 'S' verb returns the RFC-9562 format, but with capital hex digits.
 // The '#v' verb returns the "Go syntax" representation, which is a 16 byte array initializer.
 // All other verbs not handled directly by the fmt package (like '%p') are unsupported and will return
@@ -267,6 +267,14 @@ func (u UUID) Format(f fmt.State, c rune) {
 	if c == 'v' && f.Flag('#') {
 		fmt.Fprintf(f, "%#v", [Size]byte(u))
 		return
+	}
+	if c == 'v' || c == 's' || c == 'q' {
+		_, hasWidth := f.Width()
+		_, hasPrecision := f.Precision()
+		if hasWidth || hasPrecision || (c == 'q' && f.Flag('#')) {
+			_, _ = fmt.Fprintf(f, fmt.FormatString(f, c), u.String())
+			return
+		}
 	}
 	switch c {
 	case 'x', 'X':
