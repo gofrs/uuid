@@ -22,8 +22,10 @@
 package uuid
 
 import (
+	"bytes"
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 )
 
@@ -109,7 +111,26 @@ func (u *NullUUID) UnmarshalJSON(b []byte) error {
 		return nil
 	}
 	if n := len(b); n >= 2 && b[0] == '"' {
-		b = b[1 : n-1]
+		inner := b[1 : n-1]
+		err := u.UUID.UnmarshalText(inner)
+		if err == nil || bytes.IndexByte(inner, '\\') < 0 {
+			u.Valid = (err == nil)
+			return err
+		}
+		// The quoted string contains JSON escape sequences. A plain UUID never
+		// sees them: encoding/json decodes the string before handing the text
+		// to UnmarshalText, so decode it the same way here and retry, keeping
+		// both types reading identical JSON. This path is only reachable for
+		// input whose raw form fails to parse, so plain input keeps the same
+		// fast path as before.
+		var s string
+		if jerr := json.Unmarshal(b, &s); jerr != nil {
+			u.Valid = false
+			return jerr
+		}
+		err = u.UUID.UnmarshalText([]byte(s))
+		u.Valid = (err == nil)
+		return err
 	}
 	err := u.UUID.UnmarshalText(b)
 	u.Valid = (err == nil)

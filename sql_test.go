@@ -133,6 +133,7 @@ func TestNullUUID(t *testing.T) {
 		t.Run("Null", testNullUUIDUnmarshalJSONNull)
 		t.Run("Valid", testNullUUIDUnmarshalJSONValid)
 		t.Run("Malformed", testNullUUIDUnmarshalJSONMalformed)
+		t.Run("Escapes", testNullUUIDUnmarshalJSONEscapes)
 	})
 }
 
@@ -338,6 +339,69 @@ func testNullUUIDUnmarshalJSONMalformed(t *testing.T) {
 	}
 }
 
+// testNullUUIDUnmarshalJSONEscapes verifies that NullUUID reads JSON strings
+// containing escape sequences the same way a plain UUID does: encoding/json
+// decodes the string before handing it to a UUID's UnmarshalText, so NullUUID
+// must not reject the very same JSON.
+func testNullUUIDUnmarshalJSONEscapes(t *testing.T) {
+	escaped := []struct {
+		name string
+		data string
+	}{
+		{"escapedDigit", `"\u0036ba7b810-9dad-11d1-80b4-00c04fd430c8"`},
+		{"escapedHyphen", `"6ba7b810\u002d9dad-11d1-80b4-00c04fd430c8"`},
+		{"escapedURNColon", `"urn\u003auuid\u003a6ba7b810-9dad-11d1-80b4-00c04fd430c8"`},
+		{"escapedBrace", `"\u007b6ba7b8109dad11d180b400c04fd430c8}"`},
+	}
+
+	for _, tc := range escaped {
+		t.Run(tc.name, func(t *testing.T) {
+			var want UUID
+			if err := json.Unmarshal([]byte(tc.data), &want); err != nil {
+				t.Fatalf("json.Unmarshal into UUID err = %v, want <nil>", err)
+			}
+			if want != codecTestUUID {
+				t.Fatalf("UUID decoded to %v, want %v", want, codecTestUUID)
+			}
+
+			var u NullUUID
+			if err := json.Unmarshal([]byte(tc.data), &u); err != nil {
+				t.Fatalf("json.Unmarshal into NullUUID err = %v, want <nil>", err)
+			}
+			if !u.Valid {
+				t.Fatal("u.Valid = false, want true")
+			}
+			if u.UUID != want {
+				t.Fatalf("NullUUID.UUID = %v, want %v", u.UUID, want)
+			}
+		})
+	}
+
+	t.Run("InvalidEscape", func(t *testing.T) {
+		var u NullUUID
+
+		data := []byte(`"\uZZZZba7b810-9dad-11d1-80b4-00c04fd430c8"`)
+
+		// encoding/json rejects the malformed escape before it calls
+		// UnmarshalJSON, so exercise the method directly as well: a caller can
+		// invoke it with bytes that did not come through encoding/json.
+		var direct NullUUID
+		if err := direct.UnmarshalJSON(data); err == nil {
+			t.Fatal("UnmarshalJSON err = <nil>, want error")
+		}
+		if direct.Valid {
+			t.Fatal("direct.Valid = true, want false")
+		}
+
+		if err := json.Unmarshal(data, &u); err == nil {
+			t.Fatal("json.Unmarshal err = <nil>, want error")
+		}
+		if u.Valid {
+			t.Fatal("u.Valid = true, want false")
+		}
+	})
+}
+
 func BenchmarkNullMarshalJSON(b *testing.B) {
 	b.Run("Valid", func(b *testing.B) {
 		u, err := FromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
@@ -371,6 +435,13 @@ func BenchmarkNullUnmarshalJSON(b *testing.B) {
 		var u NullUUID
 		for i := 0; i < b.N; i++ {
 			_ = u.UnmarshalJSON(data)
+		}
+	})
+	b.Run("Escaped", func(b *testing.B) {
+		escaped := []byte(`"\u0036ba7b810-9dad-11d1-80b4-00c04fd430c8"`)
+		var u NullUUID
+		for i := 0; i < b.N; i++ {
+			_ = u.UnmarshalJSON(escaped)
 		}
 	})
 	b.Run("Invalid", func(b *testing.B) {
