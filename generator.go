@@ -561,14 +561,20 @@ func (g *Gen) nextV7Sequence(ms uint64, clampBackwards bool) (uint64, uint16, er
 	// Still within the tick last encoded, either because the timestamp repeats
 	// or because it moved backwards and is being held at the last value.
 	if g.v7Counter >= maxV7Counter {
+		next := g.v7LastMs + 1
 		if g.v7LastMs == maxV7Timestamp {
-			return 0, 0, ErrV7TimestampExhausted
+			if ms == maxV7Timestamp {
+				return 0, 0, ErrV7TimestampExhausted
+			}
+			// Do not wedge the generator after an earlier far-future call;
+			// restart at the requested timestamp instead.
+			next = ms
 		}
 		counter, err := g.seedV7Counter()
 		if err != nil {
 			return 0, 0, err
 		}
-		g.v7LastMs, g.v7Counter = g.v7LastMs+1, counter
+		g.v7LastMs, g.v7Counter = next, counter
 	} else {
 		g.v7Counter++
 	}
