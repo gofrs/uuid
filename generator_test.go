@@ -56,6 +56,8 @@ func testNewV1(t *testing.T) {
 	t.Run("MissingNetworkFaultyRand", testNewV1MissingNetworkFaultyRand)
 	t.Run("MissingNetworkFaultyRandWithOptions", testNewV1MissingNetworkFaultyRandWithOptions)
 	t.Run("AtSpecificTime", testNewV1AtTime)
+	t.Run("FaultyRandAtTimeRepeated", testNewV1FaultyRandAtTimeRepeated)
+	t.Run("MissingNetworkFaultyRandAtTimeRepeated", testNewV1MissingNetworkFaultyRandAtTimeRepeated)
 }
 
 func TestNewGenWithHWAF(t *testing.T) {
@@ -167,6 +169,46 @@ func testNewV1FaultyRand(t *testing.T) {
 	}
 	if u != Nil {
 		t.Fatalf("got %v on error, want Nil", u)
+	}
+}
+
+func testNewV1FaultyRandAtTimeRepeated(t *testing.T) {
+	g := &Gen{
+		epochFunc:  time.Now,
+		hwAddrFunc: defaultHWAddrFunc,
+		rand:       &faultyReader{readToFail: 0},
+	}
+	atTime := time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
+
+	for i := 0; i < 2; i++ {
+		u, err := g.NewV1AtTime(atTime)
+		if err == nil {
+			t.Fatalf("call %d: got %v, want error", i+1, u)
+		}
+		if u != Nil {
+			t.Fatalf("call %d: got %v on error, want Nil", i+1, u)
+		}
+	}
+}
+
+func testNewV1MissingNetworkFaultyRandAtTimeRepeated(t *testing.T) {
+	g := &Gen{
+		epochFunc: time.Now,
+		hwAddrFunc: func() (net.HardwareAddr, error) {
+			return nil, errors.New("uuid: no hw address found")
+		},
+		rand: &faultyReader{readToFail: 0},
+	}
+	atTime := time.Date(2020, 1, 2, 3, 4, 5, 6, time.UTC)
+
+	for i := 0; i < 2; i++ {
+		u, err := g.NewV1AtTime(atTime)
+		if err == nil {
+			t.Fatalf("call %d: got %v, want error", i+1, u)
+		}
+		if u != Nil {
+			t.Fatalf("call %d: got %v on error, want Nil", i+1, u)
+		}
 	}
 }
 
