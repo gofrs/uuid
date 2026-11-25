@@ -271,7 +271,7 @@ func (u UUID) Format(f fmt.State, c rune) {
 	if c == 'v' || c == 's' || c == 'q' {
 		_, hasWidth := f.Width()
 		_, hasPrecision := f.Precision()
-		if hasWidth || hasPrecision || (c == 'q' && f.Flag('#')) {
+		if hasWidth || hasPrecision {
 			_, _ = fmt.Fprintf(f, fmt.FormatString(f, c), u.String())
 			return
 		}
@@ -292,9 +292,13 @@ func (u UUID) Format(f fmt.State, c rune) {
 		_, _ = f.Write(b)
 	case 'q':
 		b := make([]byte, 38)
-		b[0] = '"'
+		quote := byte('"')
+		if f.Flag('#') {
+			quote = '`'
+		}
+		b[0] = quote
 		encodeCanonical(b[1:], u)
-		b[37] = '"'
+		b[37] = quote
 		_, _ = f.Write(b)
 	default:
 		// invalid/unsupported format verb

@@ -185,7 +185,7 @@ func testUUIDFormat(t *testing.T) {
 
 func testUUIDFormatStringOptions(t *testing.T) {
 	u := Must(FromString("12345678-90ab-cdef-1234-567890abcdef"))
-	for _, format := range []string{"%40s", "%-40v", "%040s", "%.8s", "%.0v", "%12.4q", "%#q", "%-42.8q"} {
+	for _, format := range []string{"%40s", "%-40v", "%040s", "%.8s", "%.0v", "%12.4q", "%#q", "%#42q", "%#.8q", "%-42.8q", "%#-42.8q"} {
 		t.Run(format, func(t *testing.T) {
 			got := fmt.Sprintf(format, u)
 			want := fmt.Sprintf(format, u.String())
