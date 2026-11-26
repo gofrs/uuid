@@ -1042,7 +1042,7 @@ func makeTestNewV7CounterExhaustedAtMaxTimestamp() func(t *testing.T) {
 
 func makeTestNewV7RecoverAfterFarFutureAtTime() func(t *testing.T) {
 	return func(t *testing.T) {
-		now := time.UnixMilli(1645557742000)
+		now := time.UnixMilli(1645557742000) // 2022-02-22 19:22:22 UTC (RFC 9562 Appendix A.6 example timestamp)
 		maxTime := time.UnixMilli(maxV7Timestamp)
 
 		t.Run("NewV7Recovers", func(t *testing.T) {
