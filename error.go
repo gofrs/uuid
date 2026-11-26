@@ -35,6 +35,10 @@ const (
 	// ErrInvalidVersion indicates an unsupported or invalid UUID version.
 	ErrInvalidVersion = Error("uuid:")
 
+	// ErrV7TimestampExhausted indicates that the UUIDv7 counter is exhausted
+	// and the encoded timestamp cannot advance.
+	ErrV7TimestampExhausted = Error("uuid: V7 counter exhausted at maximum timestamp")
+
 	// ErrV8FieldLength indicates a V8 custom field has incorrect length.
 	ErrV8FieldLength = Error("uuid: V8 field has incorrect length")
 )

@@ -711,6 +711,8 @@ func testNewV7(t *testing.T) {
 	t.Run("KSortable", makeTestNewV7KSortable())
 	t.Run("ClockSequence", makeTestNewV7ClockSequence())
 	t.Run("CounterRollover", makeTestNewV7CounterRollover())
+	t.Run("CounterExhaustedAtMaxTimestamp", makeTestNewV7CounterExhaustedAtMaxTimestamp())
+	t.Run("RecoverAfterFarFutureAtTime", makeTestNewV7RecoverAfterFarFutureAtTime())
 	t.Run("Sequential1M", makeTestNewV7Sequential1M())
 	t.Run("BorrowIsBounded", makeTestNewV7BorrowIsBounded())
 	t.Run("CounterReseedsOnNewTick", makeTestNewV7CounterReseedsOnNewTick())
@@ -1008,6 +1010,135 @@ func makeTestNewV7CounterRollover() func(t *testing.T) {
 	}
 }
 
+func makeTestNewV7CounterExhaustedAtMaxTimestamp() func(t *testing.T) {
+	return func(t *testing.T) {
+		atTime := time.UnixMilli(maxV7Timestamp)
+		// Seed the counter at zero and leave enough bytes for a rollover attempt.
+		random := bytes.NewReader(make([]byte, 2+8*(maxV7Counter+1)+10))
+		g := NewGenWithOptions(WithRandomReader(random))
+		for i := range maxV7Counter + 1 {
+			u, err := g.NewV7AtTime(atTime)
+			if err != nil {
+				t.Fatalf("NewV7AtTime at counter %d: %v", i, err)
+			}
+			if got := v7Counter(u); got != uint16(i) {
+				t.Fatalf("counter = %d, want %d", got, i)
+			}
+		}
+		u, err := g.NewV7AtTime(atTime)
+		if !errors.Is(err, ErrV7TimestampExhausted) || u != Nil {
+			t.Fatalf("NewV7AtTime after counter exhaustion = (%v, %v), want (Nil, ErrV7TimestampExhausted)", u, err)
+		}
+
+		u, err = g.NewV7AtTime(atTime.Add(-time.Millisecond))
+		if err != nil {
+			t.Fatalf("NewV7AtTime at an earlier timestamp after exhaustion: %v", err)
+		}
+		if got := v7Counter(u); got != 0 {
+			t.Fatalf("counter at an earlier timestamp = %d, want 0", got)
+		}
+	}
+}
+
+func makeTestNewV7RecoverAfterFarFutureAtTime() func(t *testing.T) {
+	return func(t *testing.T) {
+		now := time.UnixMilli(1645557742000) // 2022-02-22 19:22:22 UTC (RFC 9562 Appendix A.6 example timestamp)
+		maxTime := time.UnixMilli(maxV7Timestamp)
+
+		t.Run("NewV7Recovers", func(t *testing.T) {
+			random := bytes.NewReader(make([]byte, 2*3+8*(maxV7Counter+10)))
+			g := NewGenWithOptions(
+				WithEpochFunc(func() time.Time { return now }),
+				WithRandomReader(random),
+			)
+			if _, err := g.NewV7AtTime(maxTime); err != nil {
+				t.Fatalf("NewV7AtTime(max): %v", err)
+			}
+			// Exhaust the remaining counter slots held at maxV7Timestamp.
+			for i := 1; i <= maxV7Counter; i++ {
+				u, err := g.NewV7()
+				if err != nil {
+					t.Fatalf("NewV7 at counter %d: %v", i, err)
+				}
+				if got := v7Counter(u); got != uint16(i) {
+					t.Fatalf("counter = %d, want %d", got, i)
+				}
+			}
+			// Once the max tick is exhausted, NewV7 restarts at the current clock
+			// instead of failing permanently.
+			recovered := make([]UUID, 5)
+			for i := range recovered {
+				u, err := g.NewV7()
+				if err != nil {
+					t.Fatalf("NewV7 after max exhaustion [%d]: %v", i, err)
+				}
+				ts, err := TimestampFromV7(u)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := ts.Time()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got.UnixMilli() != now.UnixMilli() {
+					t.Fatalf("recovered[%d] encodes %dms, want %dms", i, got.UnixMilli(), now.UnixMilli())
+				}
+				recovered[i] = u
+			}
+			assertV7Increasing(t, recovered)
+		})
+
+		t.Run("NewV7AtTimeRecoversAfterHeldCalls", func(t *testing.T) {
+			random := bytes.NewReader(make([]byte, 2*3+8*(maxV7Counter+5)))
+			g := NewGenWithOptions(
+				WithEpochFunc(func() time.Time { return now }),
+				WithRandomReader(random),
+			)
+			if _, err := g.NewV7AtTime(maxTime); err != nil {
+				t.Fatalf("NewV7AtTime(max): %v", err)
+			}
+			// Exhaust the counter via NewV7 so v7LastRequestedMs is already now.
+			for i := 1; i <= maxV7Counter; i++ {
+				if _, err := g.NewV7(); err != nil {
+					t.Fatalf("NewV7 at counter %d: %v", i, err)
+				}
+			}
+			u, err := g.NewV7AtTime(now)
+			if err != nil {
+				t.Fatalf("NewV7AtTime(now) after max exhaustion: %v", err)
+			}
+			ts, err := TimestampFromV7(u)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := ts.Time()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.UnixMilli() != now.UnixMilli() {
+				t.Fatalf("recovered timestamp = %dms, want %dms", got.UnixMilli(), now.UnixMilli())
+			}
+		})
+
+		t.Run("ClockAtMaxStillErrors", func(t *testing.T) {
+			random := bytes.NewReader(make([]byte, 2+8*(maxV7Counter+1)+10))
+			g := NewGenWithOptions(
+				WithEpochFunc(func() time.Time { return maxTime }),
+				WithRandomReader(random),
+			)
+			for i := range maxV7Counter + 1 {
+				if _, err := g.NewV7(); err != nil {
+					t.Fatalf("NewV7 at counter %d: %v", i, err)
+				}
+			}
+			u, err := g.NewV7()
+			if !errors.Is(err, ErrV7TimestampExhausted) || u != Nil {
+				t.Fatalf("NewV7 at max clock after exhaustion = (%v, %v), want (Nil, ErrV7TimestampExhausted)", u, err)
+			}
+		})
+	}
+}
+
 // makeTestNewV7Sequential1M is the ordering check at load, against the real
 // clock so that counter rollovers, the reseeding that follows them and the clock
 // advancing on its own all interleave. Sorting strictly above the previous UUID
@@ -1251,6 +1382,8 @@ func makeTestNewV7AtTimeUnrepresentable() func(t *testing.T) {
 			{name: "ZeroTime", atTime: time.Time{}, want: 0},
 			{name: "BeforeUnixEpoch", atTime: time.Date(1969, 7, 20, 20, 17, 0, 0, time.UTC), want: 0},
 			{name: "AfterTimestampRange", atTime: time.Date(20000, 1, 1, 0, 0, 0, 0, time.UTC), want: maxV7Timestamp},
+			{name: "BeforeUnixMilliRange", atTime: time.Date(-500_000_000, 1, 1, 0, 0, 0, 0, time.UTC), want: 0},
+			{name: "AfterUnixMilliRange", atTime: time.Date(500_000_000, 1, 1, 0, 0, 0, 0, time.UTC), want: maxV7Timestamp},
 		} {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewGen()

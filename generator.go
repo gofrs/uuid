@@ -110,7 +110,8 @@ func NewV6AtTime(atTime time.Time) (UUID, error) {
 // room for at least 2048 UUIDs within that millisecond. Beyond that the
 // embedded timestamp is incremented ahead of the actual time, so generating
 // UUIDs faster than roughly two million per second trades timestamp accuracy
-// for ordering.
+// for ordering. NewV7 returns ErrV7TimestampExhausted if the counter runs out
+// at the maximum timestamp.
 func NewV7() (UUID, error) {
 	return DefaultGenerator.NewV7()
 }
@@ -128,7 +129,8 @@ func NewV7() (UUID, error) {
 // Providing a timestamp ahead of the clock therefore holds later NewV7 UUIDs at
 // that timestamp, since going back below it would break their ordering. Times
 // outside the range the 48-bit millisecond field can represent are pinned to the
-// nearest end of it.
+// nearest end of it. NewV7AtTime returns ErrV7TimestampExhausted if the counter
+// runs out at the maximum timestamp.
 func NewV7AtTime(atTime time.Time) (UUID, error) {
 	return DefaultGenerator.NewV7AtTime(atTime)
 }
@@ -440,10 +442,15 @@ func (g *Gen) newV7(atTime time.Time, clampBackwards bool) (UUID, error) {
 	   |                            rand_b                             |
 	   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ */
 
-	// A time outside the range the timestamp field can hold has no
-	// representation, so the nearest end of that range stands in for it rather
-	// than the unrelated value the field would otherwise wrap to.
-	atMs := min(uint64(max(atTime.UnixMilli(), 0)), maxV7Timestamp)
+	// Check the range in seconds before converting to milliseconds, which can
+	// overflow int64 even for a valid time.Time.
+	var atMs uint64
+	switch sec := atTime.Unix(); {
+	case sec > maxV7Timestamp/1000:
+		atMs = maxV7Timestamp
+	case sec >= 0:
+		atMs = min(uint64(atTime.UnixMilli()), maxV7Timestamp)
+	}
 
 	ms, counter, err := g.nextV7Sequence(atMs, clampBackwards)
 	if err != nil {
@@ -554,11 +561,20 @@ func (g *Gen) nextV7Sequence(ms uint64, clampBackwards bool) (uint64, uint16, er
 	// Still within the tick last encoded, either because the timestamp repeats
 	// or because it moved backwards and is being held at the last value.
 	if g.v7Counter >= maxV7Counter {
+		next := g.v7LastMs + 1
+		if g.v7LastMs == maxV7Timestamp {
+			if ms == maxV7Timestamp {
+				return 0, 0, ErrV7TimestampExhausted
+			}
+			// Do not wedge the generator after an earlier far-future call;
+			// restart at the requested timestamp instead.
+			next = ms
+		}
 		counter, err := g.seedV7Counter()
 		if err != nil {
 			return 0, 0, err
 		}
-		g.v7LastMs, g.v7Counter = g.v7LastMs+1, counter
+		g.v7LastMs, g.v7Counter = next, counter
 	} else {
 		g.v7Counter++
 	}
