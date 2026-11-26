@@ -85,6 +85,8 @@ func parseBytes(b []byte, u *UUID) error {
 		return ErrIncorrectLength
 	}
 
+	var parsed UUID
+
 	// canonical (36 chars with dashes at fixed positions)
 	if len(b) == 36 {
 		if b[8] != '-' || b[13] != '-' || b[18] != '-' || b[23] != '-' {
@@ -102,8 +104,9 @@ func parseBytes(b []byte, u *UUID) error {
 			if v1|v2 == 255 {
 				return ErrInvalidFormat
 			}
-			u[i] = (v1 << 4) | v2
+			parsed[i] = (v1 << 4) | v2
 		}
+		*u = parsed
 		return nil
 	}
 
@@ -114,8 +117,9 @@ func parseBytes(b []byte, u *UUID) error {
 		if v1|v2 == 255 {
 			return ErrInvalidFormat
 		}
-		u[i/2] = (v1 << 4) | v2
+		parsed[i/2] = (v1 << 4) | v2
 	}
+	*u = parsed
 	return nil
 }
 
