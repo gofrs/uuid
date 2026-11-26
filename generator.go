@@ -175,6 +175,9 @@ type Gen struct {
 	hardwareAddrOnce  sync.Once
 	storageMutex      sync.Mutex
 
+	clockSequenceErr error
+	hardwareAddrErr  error
+
 	rand io.Reader
 
 	epochFunc     EpochFunc
@@ -585,16 +588,15 @@ func (g *Gen) seedV7Counter() (uint16, error) {
 // intervals since 00:00:00.00, 15 October 1582 (the date of Gregorian reform to
 // the Christian calendar).
 func (g *Gen) getClockSequence(atTime time.Time) (uint64, uint16, error) {
-	var err error
 	g.clockSequenceOnce.Do(func() {
 		buf := make([]byte, 2)
-		if _, err = io.ReadFull(g.rand, buf); err != nil {
+		if _, g.clockSequenceErr = io.ReadFull(g.rand, buf); g.clockSequenceErr != nil {
 			return
 		}
 		g.clockSequence = binary.BigEndian.Uint16(buf)
 	})
-	if err != nil {
-		return 0, 0, err
+	if g.clockSequenceErr != nil {
+		return 0, 0, g.clockSequenceErr
 	}
 
 	g.storageMutex.Lock()
@@ -613,24 +615,23 @@ func (g *Gen) getClockSequence(atTime time.Time) (uint64, uint16, error) {
 
 // Returns the hardware address.
 func (g *Gen) getHardwareAddr() ([]byte, error) {
-	var err error
 	g.hardwareAddrOnce.Do(func() {
 		var hwAddr net.HardwareAddr
-		if hwAddr, err = g.hwAddrFunc(); err == nil {
+		if hwAddr, g.hardwareAddrErr = g.hwAddrFunc(); g.hardwareAddrErr == nil {
 			copy(g.hardwareAddr[:], hwAddr)
 			return
 		}
 
 		// Initialize hardwareAddr randomly in case
 		// of real network interfaces absence.
-		if _, err = io.ReadFull(g.rand, g.hardwareAddr[:]); err != nil {
+		if _, g.hardwareAddrErr = io.ReadFull(g.rand, g.hardwareAddr[:]); g.hardwareAddrErr != nil {
 			return
 		}
 		// Set multicast bit as recommended by RFC-9562
 		g.hardwareAddr[0] |= 0x01
 	})
-	if err != nil {
-		return []byte{}, err
+	if g.hardwareAddrErr != nil {
+		return []byte{}, g.hardwareAddrErr
 	}
 	return g.hardwareAddr[:], nil
 }
