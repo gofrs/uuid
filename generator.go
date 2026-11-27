@@ -637,8 +637,24 @@ func (g *Gen) getHardwareAddr() ([]byte, error) {
 
 // Returns the difference between UUID epoch (October 15, 1582)
 // and the provided time in 100-nanosecond intervals.
+//
+// time.Time.UnixNano is undefined outside 1678-2262, while the 60-bit
+// timestamp field reaches the year 5236, so going through it would wrap an
+// instant the field can represent to an unrelated one. A time outside the
+// field's range is clamped to the nearest end, as in NewV7AtTime.
 func (g *Gen) getEpoch(atTime time.Time) uint64 {
-	return epochStart + uint64(atTime.UnixNano()/100)
+	const maxTimestamp = 1<<60 - 1
+	const maxSec = (maxTimestamp - int64(epochStart)) / _100nsPerSecond
+	const minSec = -(int64(epochStart) / _100nsPerSecond)
+
+	sec := atTime.Unix()
+	if sec > maxSec {
+		return maxTimestamp
+	}
+	if sec < minSec {
+		return 0
+	}
+	return uint64(int64(epochStart) + sec*_100nsPerSecond + int64(atTime.Nanosecond())/100)
 }
 
 var netInterfaces = net.Interfaces
